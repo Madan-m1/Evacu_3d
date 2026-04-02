@@ -1,0 +1,39 @@
+version: "3.9"
+
+services:
+  mongodb:
+    image: mongo:7
+    container_name: evacu3d-mongo
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    environment:
+      MONGO_INITDB_DATABASE: evacu3d
+
+  server:
+    build: ./server
+    container_name: evacu3d-server
+    restart: unless-stopped
+    ports:
+      - "5005:5005"
+    environment:
+      PORT: 5005
+      MONGODB_URI: mongodb://mongodb:27017/evacu3d
+    depends_on:
+      - mongodb
+
+  client:
+    build: ./client
+    container_name: evacu3d-client
+    restart: unless-stopped
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_API_URL=http://server:5005
+    depends_on:
+      - server
+
+volumes:
+  mongo_data:

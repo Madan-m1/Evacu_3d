@@ -1,0 +1,33 @@
+@import "tailwindcss";
+
+@theme {
+  --color-darkRed: #7A1C1C;
+  --color-alertRed: #E63946;
+  --color-primary: #457B9D;
+  --color-secondary: #A8DADC;
+  --color-darkBg: #111827;
+  --color-panelBg: #1F2937;
+}
+
+@layer base {
+  body {
+    @apply bg-darkBg text-white font-sans;
+  }
+
+  /* Custom Scrollbar for Premium Feel */
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    @apply bg-gray-700/50 rounded-full hover:bg-gray-600/80 transition;
+  }
+}
+
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(55, 65, 81, 0.5) transparent;
+}
