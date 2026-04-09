@@ -1,4 +1,4 @@
-import express from 'express';
+import express, { Request, Response } from 'express';
 import cors from 'cors';
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
@@ -35,7 +35,7 @@ app.use(cors({
 app.use(express.json());
 
 // ─── Health Check ───────────────────────────────────────────────────────────
-app.get('/', (_req, res) => {
+app.get('/', (_req: Request, res: Response) => {
   res.json({ 
     status: 'online', 
     message: 'Evacu3D API is running',
@@ -137,7 +137,7 @@ const getBuilding = async (id: string) => {
 
 // ─── Buildings API ────────────────────────────────────────────────────────────
 
-app.get('/api/buildings', async (_req, res) => {
+app.get('/api/buildings', async (_req: Request, res: Response) => {
   try {
     const buildings = await BuildingModel.find({}, 'name _id createdAt').lean();
     return res.json(buildings);
@@ -146,7 +146,7 @@ app.get('/api/buildings', async (_req, res) => {
   }
 });
 
-app.post('/api/buildings', requireAuth(['admin']), async (req, res) => {
+app.post('/api/buildings', requireAuth(['admin']), async (req: Request, res: Response) => {
   const { name } = req.body;
   if (!name) return res.status(400).json({ error: 'name is required' });
 
@@ -158,7 +158,7 @@ app.post('/api/buildings', requireAuth(['admin']), async (req, res) => {
   }
 });
 
-app.get('/api/buildings/:id', async (req, res) => {
+app.get('/api/buildings/:id', async (req: Request, res: Response) => {
   try {
     const building = await getBuilding(req.params.id);
     if (!building) return res.status(404).json({ error: 'Building not found' });
@@ -168,7 +168,7 @@ app.get('/api/buildings/:id', async (req, res) => {
   }
 });
 
-app.put('/api/buildings/:id', requireAuth(['admin']), async (req, res) => {
+app.put('/api/buildings/:id', requireAuth(['admin']), async (req: Request, res: Response) => {
   const { nodes, edges, name } = req.body;
   try {
     const update: any = {};
@@ -185,7 +185,7 @@ app.put('/api/buildings/:id', requireAuth(['admin']), async (req, res) => {
   }
 });
 
-app.delete('/api/buildings/:id', requireAuth(['admin']), async (req, res) => {
+app.delete('/api/buildings/:id', requireAuth(['admin']), async (req: Request, res: Response) => {
   try {
     await BuildingModel.findByIdAndDelete(req.params.id);
     return res.json({ success: true });
@@ -196,7 +196,7 @@ app.delete('/api/buildings/:id', requireAuth(['admin']), async (req, res) => {
 
 // ─── Hazards (building-scoped) ────────────────────────────────────────────────
 
-app.get('/api/buildings/:id/hazards', async (req, res) => {
+app.get('/api/buildings/:id/hazards', async (req: Request, res: Response) => {
   try {
     const building = await getBuilding(req.params.id);
     if (!building) return res.status(404).json({ error: 'Building not found' });
@@ -206,7 +206,7 @@ app.get('/api/buildings/:id/hazards', async (req, res) => {
   }
 });
 
-app.post('/api/buildings/:id/hazards', requireAuth(['admin', 'user']), async (req, res) => {
+app.post('/api/buildings/:id/hazards', requireAuth(['admin', 'user']), async (req: Request, res: Response) => {
   const { nodeId, type = 'fire', severity = 1 } = req.body;
   if (!nodeId) return res.status(400).json({ error: 'nodeId is required' });
 
@@ -235,7 +235,7 @@ app.post('/api/buildings/:id/hazards', requireAuth(['admin', 'user']), async (re
   }
 });
 
-app.delete('/api/buildings/:id/hazards/:nodeId', requireAuth(['admin', 'user']), async (req, res) => {
+app.delete('/api/buildings/:id/hazards/:nodeId', requireAuth(['admin', 'user']), async (req: Request, res: Response) => {
   const user = (req as any).user;
   try {
     const building = await BuildingModel.findById(req.params.id);
@@ -271,7 +271,7 @@ app.delete('/api/buildings/:id/hazards/:nodeId', requireAuth(['admin', 'user']),
 
 // ─── Simulate (building-scoped) ───────────────────────────────────────────────
 
-app.post('/api/buildings/:id/simulate', async (req, res) => {
+app.post('/api/buildings/:id/simulate', async (req: Request, res: Response) => {
   const { startNode, activeHazards: clientHazards = [] } = req.body;
   if (!startNode) return res.status(400).json({ error: 'startNode is required' });
 
@@ -312,7 +312,7 @@ app.post('/api/buildings/:id/simulate', async (req, res) => {
 
 // ─── Participants ─────────────────────────────────────────────────────────────
 
-app.get('/api/buildings/:id/participants', async (req, res) => {
+app.get('/api/buildings/:id/participants', async (req: Request, res: Response) => {
   try {
     const cutoff = new Date(Date.now() - 30000);
     const participants = await ParticipantModel.find({
@@ -325,7 +325,7 @@ app.get('/api/buildings/:id/participants', async (req, res) => {
   }
 });
 
-app.post('/api/buildings/:id/participants', async (req, res) => {
+app.post('/api/buildings/:id/participants', async (req: Request, res: Response) => {
   const { id, nodeId, name, status } = req.body;
   const buildingId = req.params.id;
   if (!id || !nodeId) return res.status(400).json({ error: 'id and nodeId required' });
@@ -353,7 +353,7 @@ app.post('/api/buildings/:id/participants', async (req, res) => {
 
 // ─── Contact Form ─────────────────────────────────────────────────────────────
 
-app.post('/api/contact', async (req, res) => {
+app.post('/api/contact', async (req: Request, res: Response) => {
   const { name, email, message } = req.body;
   if (!name || !email || !message) return res.status(400).json({ error: 'name, email, and message are required' });
 
@@ -365,7 +365,7 @@ app.post('/api/contact', async (req, res) => {
   }
 });
 
-app.get('/api/contact', requireAuth(['admin']), async (_req, res) => {
+app.get('/api/contact', requireAuth(['admin']), async (_req: Request, res: Response) => {
   try {
     const messages = await ContactModel.find().sort({ createdAt: -1 });
     res.json(messages);
@@ -374,7 +374,7 @@ app.get('/api/contact', requireAuth(['admin']), async (_req, res) => {
   }
 });
 
-app.delete('/api/contact/:id', requireAuth(['admin']), async (req, res) => {
+app.delete('/api/contact/:id', requireAuth(['admin']), async (req: Request, res: Response) => {
   try {
     await ContactModel.findByIdAndDelete(req.params.id);
     res.json({ success: true });
@@ -385,7 +385,7 @@ app.delete('/api/contact/:id', requireAuth(['admin']), async (req, res) => {
 
 // ─── Users Management ─────────────────────────────────────────────────────────
 
-app.get('/api/users', requireAuth(['admin']), async (_req, res) => {
+app.get('/api/users', requireAuth(['admin']), async (_req: Request, res: Response) => {
   try {
     const users = await UserModel.find({}, { passwordHash: 0 }).sort({ createdAt: -1 });
     res.json(users);
@@ -394,7 +394,7 @@ app.get('/api/users', requireAuth(['admin']), async (_req, res) => {
   }
 });
 
-app.put('/api/users/:id/status', requireAuth(['admin']), async (req, res) => {
+app.put('/api/users/:id/status', requireAuth(['admin']), async (req: Request, res: Response) => {
   try {
     const { status } = req.body;
     if (!['pending', 'approved', 'rejected'].includes(status)) {
@@ -408,7 +408,7 @@ app.put('/api/users/:id/status', requireAuth(['admin']), async (req, res) => {
   }
 });
 
-app.delete('/api/users/:id', requireAuth(['admin']), async (req, res) => {
+app.delete('/api/users/:id', requireAuth(['admin']), async (req: Request, res: Response) => {
   try {
     await UserModel.findByIdAndDelete(req.params.id);
     res.json({ success: true });
@@ -418,7 +418,7 @@ app.delete('/api/users/:id', requireAuth(['admin']), async (req, res) => {
 });
 
 // ─── Global Aliases (Hardening Compatibility) ────────────────────────────────
-app.get('/api/layout', async (_req, res) => {
+app.get('/api/layout', async (_req: Request, res: Response) => {
   try {
     const b = await BuildingModel.findOne().sort({ createdAt: 1 }).lean();
     if (!b) return res.status(404).json({ error: 'No layout found' });
@@ -426,7 +426,7 @@ app.get('/api/layout', async (_req, res) => {
   } catch (err: any) { return res.status(500).json({ error: err.message }); }
 });
 
-app.get('/api/hazards', async (_req, res) => {
+app.get('/api/hazards', async (_req: Request, res: Response) => {
   try {
     const b = await BuildingModel.findOne().sort({ createdAt: 1 }).lean();
     if (!b) return res.status(404).json({ error: 'No building found' });
@@ -436,7 +436,7 @@ app.get('/api/hazards', async (_req, res) => {
 
 // ─── Legacy /api/building (compat) ───────────────────────────────────────────
 
-app.get('/api/building', async (_req, res) => {
+app.get('/api/building', async (_req: Request, res: Response) => {
   try {
     const b = await BuildingModel.findOne().lean();
     if (b) return res.json({ nodes: (b as any).nodes, edges: (b as any).edges, hazards: (b as any).hazards });

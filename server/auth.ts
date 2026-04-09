@@ -108,7 +108,7 @@ router.post('/login', async (req: Request, res: Response) => {
 });
 
 // ─── Setup ────────────────────────────────────────────────────────────────────
-router.get('/setup-check', async (_req, res) => {
+router.get('/setup-check', async (_req: Request, res: Response) => {
   const adminCount = await UserModel.countDocuments({ role: 'admin' });
   res.json({ setupRequired: adminCount === 0 });
 });
