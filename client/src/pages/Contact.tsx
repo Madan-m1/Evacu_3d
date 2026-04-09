@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Mail, User, MessageSquare, Send, CheckCircle, AlertCircle } from 'lucide-react';
+import { getApiUrl } from '../api/config';
 
 export default function Contact() {
   const [name, setName] = useState('');
@@ -19,7 +20,7 @@ export default function Contact() {
     setLoading(true);
     setStatus('idle');
     try {
-      const res = await fetch('/api/contact', {
+      const res = await fetch(getApiUrl('/api/contact'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name, email, message }),

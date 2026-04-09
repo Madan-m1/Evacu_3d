@@ -3,6 +3,7 @@ import { useSimulationStore, type NodeData } from '../store/simulationStore';
 import { Play, RotateCcw, ShieldAlert, MapPin, Loader2, Lock } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import { Link } from 'react-router-dom';
+import { getApiUrl } from '../api/config';
 
 export const ControlPanel: React.FC = () => {
   const { 
@@ -44,7 +45,7 @@ export const ControlPanel: React.FC = () => {
     setLoading(true);
 
     try {
-      const response = await fetch(`/api/buildings/${currentBuildingId}/simulate`, {
+      const response = await fetch(getApiUrl(`/api/buildings/${currentBuildingId}/simulate`), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ startNode, activeHazards })

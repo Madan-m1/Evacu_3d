@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { io, Socket } from 'socket.io-client';
+import { API_URL, getApiUrl } from '../api/config';
 
 // Helper: read JWT from localStorage (avoids circular dep with authStore)
 const getAuthHeader = (): Record<string, string> => {
@@ -111,7 +112,7 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
 
   fetchBuildings: async () => {
     try {
-      const res = await fetch('/api/buildings');
+      const res = await fetch(getApiUrl('/api/buildings'));
       const buildings: BuildingListItem[] = await res.json();
       set({ buildings });
     } catch (err) {
@@ -124,10 +125,10 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
     if (oldSocket) oldSocket.disconnect();
 
     try {
-      const res = await fetch(`/api/buildings/${id}`);
+      const res = await fetch(getApiUrl(`/api/buildings/${id}`));
       const data = await res.json();
 
-      const newSocket = io(window.location.origin);
+      const newSocket = io(API_URL);
       
       newSocket.on('connect', () => {
         newSocket.emit('join-building', id);
@@ -183,7 +184,7 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
     const { currentBuildingId } = get();
     if (!currentBuildingId) return;
     try {
-      const res = await fetch(`/api/buildings/${currentBuildingId}/hazards`);
+      const res = await fetch(getApiUrl(`/api/buildings/${currentBuildingId}/hazards`));
       const hazards: HazardData[] = await res.json();
       set({ hazards, activeHazards: hazards.map(h => h.nodeId) });
     } catch (err) {
@@ -195,7 +196,7 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
     const { currentBuildingId } = get();
     if (!currentBuildingId) return;
     try {
-      const res = await fetch(`/api/buildings/${currentBuildingId}/participants`);
+      const res = await fetch(getApiUrl(`/api/buildings/${currentBuildingId}/participants`));
       const participants: ParticipantData[] = await res.json();
       set({ participants });
     } catch (err) {
@@ -212,7 +213,7 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
     if (simulationMode === 'refuge') status = 'refuge_mode';
 
     try {
-      await fetch(`/api/buildings/${currentBuildingId}/participants`, {
+      await fetch(getApiUrl(`/api/buildings/${currentBuildingId}/participants`), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -247,13 +248,13 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
 
     try {
       if (isActive) {
-        const res = await fetch(`/api/buildings/${currentBuildingId}/hazards/${nodeId}`, {
+        const res = await fetch(getApiUrl(`/api/buildings/${currentBuildingId}/hazards/${nodeId}`), {
           method: 'DELETE',
           headers: getAuthHeader(),
         });
         if (!res.ok) throw new Error('Delete failed');
       } else {
-        const res = await fetch(`/api/buildings/${currentBuildingId}/hazards`, {
+        const res = await fetch(getApiUrl(`/api/buildings/${currentBuildingId}/hazards`), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
           body: JSON.stringify({ nodeId, type: 'fire' }),

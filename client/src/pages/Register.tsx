@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ShieldAlert, UserPlus, Eye, EyeOff, AlertCircle, CheckCircle } from 'lucide-react';
+import { getApiUrl } from '../api/config';
 
 export default function Register() {
   const [email, setEmail] = useState('');
@@ -19,7 +20,7 @@ export default function Register() {
     if (password.length < 6) { setError('Password must be at least 6 characters'); return; }
     setLoading(true);
     try {
-      const res = await fetch('/api/auth/register', {
+      const res = await fetch(getApiUrl('/api/auth/register'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),

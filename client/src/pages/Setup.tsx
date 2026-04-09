@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ShieldAlert, UserCheck, AlertCircle, CheckCircle } from 'lucide-react';
+import { getApiUrl } from '../api/config';
 
 export default function Setup() {
   const [email, setEmail] = useState('');
@@ -13,7 +14,7 @@ export default function Setup() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    fetch('/api/auth/setup-check')
+    fetch(getApiUrl('/api/auth/setup-check'))
       .then(res => res.json())
       .then(data => {
         setIsSetupRequired(data.setupRequired);
@@ -34,7 +35,7 @@ export default function Setup() {
     setError('');
     setLoading(true);
     try {
-      const res = await fetch('/api/auth/setup', {
+      const res = await fetch(getApiUrl('/api/auth/setup'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password, setupKey }),

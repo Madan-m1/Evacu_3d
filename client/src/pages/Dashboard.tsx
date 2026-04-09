@@ -8,6 +8,7 @@ import {
 import { io, Socket } from 'socket.io-client';
 import { useAuthStore } from '../store/authStore';
 import VisualBuilder, { type Node, type Edge } from '../components/Admin/VisualBuilder';
+import { API_URL, getApiUrl } from '../api/config';
 
 interface Building {
   _id: string;
@@ -32,7 +33,7 @@ interface Participant {
   lastActive: string;
 }
 
-const API = '/api';
+const API = getApiUrl('/api');
 const inputCls = 'bg-gray-900 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-full';
 
 const getAuthHeader = (): Record<string, string> => {
@@ -111,7 +112,7 @@ export default function Dashboard() {
       fetchBuildingData(currentBuildingId);
       
       // Socket setup for Dashboard
-      const socket = io(window.location.origin);
+      const socket = io(API_URL);
       socket.on('connect', () => {
         socket.emit('join-building', currentBuildingId);
       });

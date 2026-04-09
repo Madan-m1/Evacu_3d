@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { ShieldAlert, LogIn, Eye, EyeOff, AlertCircle } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
+import { getApiUrl } from '../api/config';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -19,7 +20,7 @@ export default function Login() {
     setError('');
     setLoading(true);
     try {
-      const res = await fetch('/api/auth/login', {
+      const res = await fetch(getApiUrl('/api/auth/login'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
