@@ -160,7 +160,7 @@ app.post('/api/buildings', requireAuth(['admin']), async (req: Request, res: Res
 
 app.get('/api/buildings/:id', async (req: Request, res: Response) => {
   try {
-    const building = await getBuilding(req.params.id);
+    const building = await getBuilding(req.params.id as string);
     if (!building) return res.status(404).json({ error: 'Building not found' });
     res.json(building);
   } catch (err: any) {
@@ -198,7 +198,7 @@ app.delete('/api/buildings/:id', requireAuth(['admin']), async (req: Request, re
 
 app.get('/api/buildings/:id/hazards', async (req: Request, res: Response) => {
   try {
-    const building = await getBuilding(req.params.id);
+    const building = await getBuilding(req.params.id as string);
     if (!building) return res.status(404).json({ error: 'Building not found' });
     res.json((building as any).hazards || []);
   } catch (err: any) {
@@ -276,7 +276,7 @@ app.post('/api/buildings/:id/simulate', async (req: Request, res: Response) => {
   if (!startNode) return res.status(400).json({ error: 'startNode is required' });
 
   try {
-    const building = await getBuilding(req.params.id);
+    const building = await getBuilding(req.params.id as string);
     if (!building) return res.status(404).json({ error: 'Building not found' });
 
     const { nodes: nodesData, edges: edgesData, hazards: storedHazards } = building as any;
