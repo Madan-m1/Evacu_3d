@@ -19,18 +19,34 @@ export default function Login() {
     e.preventDefault();
     setError('');
     setLoading(true);
+
+    const loginUrl = getApiUrl('/api/auth/login');
+    if (import.meta.env.DEV) console.log(`🔐 Attempting login at: ${loginUrl}`);
+
     try {
-      const res = await fetch(getApiUrl('/api/auth/login'), {
+      const res = await fetch(loginUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
       });
+
       const data = await res.json();
-      if (!res.ok) { setError(data.error || 'Login failed'); setLoading(false); return; }
+      
+      if (!res.ok) { 
+        setError(data.error || 'Login failed'); 
+        setLoading(false); 
+        return; 
+      }
+
       login(data.token, data.user);
       navigate(data.user.role === 'admin' ? '/dashboard' : from, { replace: true });
-    } catch {
-      setError('Connection error. Please try again.');
+    } catch (err: any) {
+      console.error('❌ Login Connection Error:', err);
+      setError('Connection error. Please ensure the backend is running and reachable.');
+      
+      if (import.meta.env.PROD) {
+        console.info(`💡 Debug Tip: Ensure VITE_API_URL is correctly set in your dashboard. Current: ${loginUrl}`);
+      }
     }
     setLoading(false);
   };

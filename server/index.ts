@@ -34,6 +34,16 @@ app.use(cors({
 
 app.use(express.json());
 
+// ─── Health Check ───────────────────────────────────────────────────────────
+app.get('/', (_req, res) => {
+  res.json({ 
+    status: 'online', 
+    message: 'Evacu3D API is running',
+    version: '1.1.0-prod',
+    timestamp: new Date().toISOString()
+  });
+});
+
 // ─── Socket.io Setup ─────────────────────────────────────────────────────────
 const io = new Server(httpServer, {
   cors: {
