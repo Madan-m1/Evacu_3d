@@ -7,7 +7,7 @@ const Home: React.FC = () => {
   const { isAuthenticated, user } = useAuthStore();
 
   return (
-    <div className="h-screen w-full flex flex-col items-center justify-center bg-gradient-to-br from-darkBg to-panelBg text-white p-6 pt-14">
+    <div className="min-h-screen w-full flex flex-col items-center justify-center bg-gradient-to-br from-darkBg to-panelBg text-white p-6 pt-20">
       <div className="max-w-3xl text-center space-y-8 animate-fade-in-up">
         <div className="flex justify-center mb-6">
           <div className="p-4 bg-alertRed/20 rounded-full border border-alertRed/30 shadow-[0_0_30px_rgba(230,57,70,0.3)]">

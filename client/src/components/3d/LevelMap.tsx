@@ -1,5 +1,5 @@
 import React, { useRef } from 'react';
-import { Text, Sphere } from '@react-three/drei';
+import { Sphere, Html } from '@react-three/drei';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { useSimulationStore, type NodeData } from '../../store/simulationStore';
@@ -39,6 +39,7 @@ const FloorLabel: React.FC<{
       meshRef.current.scale.setScalar(1 + Math.sin(clock.elapsedTime * 3) * 0.04);
     }
   });
+
 
   return (
     <group position={position}>
@@ -96,33 +97,41 @@ const FloorLabel: React.FC<{
         <pointLight color={isExit ? "#10b981" : "#8b5cf6"} intensity={2} distance={4} position={[0, 1, 0]} />
       )}
 
-      {/* Room name label */}
-      <Text
-        position={[0, 1.6, 0]}
-        fontSize={0.35}
-        color={isExit ? '#6ee7b7' : isRefuge ? '#c4b5fd' : isSelected ? '#93c5fd' : '#94a3b8'}
-        anchorX="center"
-        anchorY="bottom"
-        outlineWidth={0.02}
-        outlineColor="#000000"
+      {/* DOM-based Html label for perfect clarity and styling */}
+      <Html
+        position={[0, 1.8, 0]}
+        center
+        distanceFactor={15} // Adds smart scaling based on camera distance
+        zIndexRange={[100, 0]}
+        className="pointer-events-none select-none transition-opacity duration-300 ease-in-out block"
       >
-        {label}
-      </Text>
+        <div className="flex flex-col items-center animate-fade-in-up">
+          {/* Main Label */}
+          <div className={
+            `px-3 py-1.5 rounded-lg backdrop-blur-md border shadow-[0_0_15px_rgba(0,0,0,0.5)] whitespace-nowrap flex items-center justify-center font-bold tracking-wide ` +
+            (isExit ? 'bg-emerald-900/90 border-emerald-500/50 text-emerald-100 shadow-emerald-900/50' :
+             isRefuge ? 'bg-purple-900/90 border-purple-500/50 text-purple-100 shadow-purple-900/50' :
+             isSelected ? 'bg-blue-900/90 border-blue-500/50 text-blue-100 shadow-blue-900/50' :
+             'bg-slate-900/85 border-slate-700/50 text-slate-200 shadow-slate-900/50')
+          }>
+            {label}
+          </div>
 
-      {/* Occupancy Badge for Refuges */}
-      {isRefuge && (
-        <Text
-          position={[0, 1.25, 0]}
-          fontSize={0.25}
-          color={occupancy >= capacity ? '#ef4444' : '#c4b5fd'}
-          anchorX="center"
-          anchorY="top"
-          outlineWidth={0.01}
-          outlineColor="#000000"
-        >
-          {`${occupancy} / ${capacity}`}
-        </Text>
-      )}
+          {/* Stacked Capacity Badge - Dynamic Real-Time Status Colors */}
+          {isRefuge && (
+            <div className={
+              `mt-1.5 px-2.5 py-0.5 rounded-md backdrop-blur text-sm font-bold shadow-[0_0_10px_rgba(0,0,0,0.5)] whitespace-nowrap border ` +
+              (occupancy >= capacity 
+                ? 'bg-red-950/95 border-red-500/80 text-red-100 shadow-[0_0_15px_rgba(239,68,68,0.6)] animate-pulse' 
+                : occupancy >= capacity * 0.7 
+                ? 'bg-amber-950/90 border-amber-500/70 text-amber-200'
+                : 'bg-teal-950/90 border-teal-500/60 text-teal-200')
+            }>
+              Capacity: {occupancy} / {capacity}
+            </div>
+          )}
+        </div>
+      </Html>
     </group>
   );
 };
@@ -153,7 +162,7 @@ const CorridorEdge: React.FC<{ nodeA: NodeData; nodeB: NodeData }> = ({ nodeA, n
 };
 
 export const LevelMap: React.FC = () => {
-  const { nodes, edges, startNode, participants } = useSimulationStore();
+  const { nodes, edges, startNode, participants, refugeOccupancy } = useSimulationStore();
 
   // Build a map for quick lookups
   const nodeMap = React.useMemo(() => {
@@ -193,19 +202,22 @@ export const LevelMap: React.FC = () => {
         return <CorridorEdge key={`edge-${i}`} nodeA={a} nodeB={b} />;
       })}
       
-      {nodes.map(node => (
-        <FloorLabel
-          key={node.id}
-          position={[node.x, node.y, node.z]}
-          label={node.roomName || node.id}
-          isExit={!!node.isExit}
-          isRefuge={!!node.isRefuge}
-          isSelected={startNode === node.id}
-          capacity={node.capacity}
-          occupancy={node.occupancy}
-          participantCount={participantCounts[node.id] || 0}
-        />
-      ))}
+      {nodes.map(node => {
+        const absoluteOccupancy = refugeOccupancy[node.id] ?? participantCounts[node.id] ?? 0;
+        return (
+          <FloorLabel
+            key={node.id}
+            position={[node.x, node.y, node.z]}
+            label={node.roomName || node.id}
+            isExit={!!node.isExit}
+            isRefuge={!!node.isRefuge}
+            isSelected={startNode === node.id}
+            capacity={node.capacity}
+            occupancy={absoluteOccupancy}
+            participantCount={absoluteOccupancy}
+          />
+        );
+      })}
     </group>
   );
 };

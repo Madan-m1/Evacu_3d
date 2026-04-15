@@ -68,7 +68,7 @@ export const ControlPanel: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col h-full bg-panelBg border-l border-gray-800 shadow-2xl overflow-y-auto">
+    <div className="flex flex-col h-screen bg-panelBg border-l border-gray-800 shadow-2xl overflow-y-auto custom-scrollbar">
       <div className="p-6 border-b border-gray-800 bg-gray-900/50">
         <h2 className="text-2xl font-bold text-white flex items-center gap-2">
           <ShieldAlert className="text-alertRed" />

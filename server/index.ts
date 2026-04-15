@@ -87,6 +87,31 @@ const emitHazardChange = async (buildingId: string, type: 'added' | 'removed' | 
   }
 };
 
+// Helper: Dynamic Refuge Occupancy Sync
+const updateRefugeOccupancy = async (buildingId: string, nodeId: string) => {
+  try {
+    const building = await BuildingModel.findById(buildingId).lean();
+    const node = (building as any)?.nodes.find((n: any) => n.id === nodeId && n.isRefuge);
+    if (!node) return; // Not a refuge, skip
+    
+    // Calculate absolute true occupancy from active users
+    const cutoff = new Date(Date.now() - 30000);
+    const occupancy = await ParticipantModel.countDocuments({ 
+      buildingId, 
+      nodeId, 
+      lastActive: { $gt: cutoff } 
+    });
+    
+    io.to(`building:${buildingId}`).emit('refuge:update', {
+      refugeId: nodeId,
+      currentOccupancy: occupancy,
+      maxCapacity: node.capacity || 10
+    });
+  } catch (err) {
+    console.error('Failed to sync refuge occupancy:', err);
+  }
+};
+
 // ─── Auth Routes ─────────────────────────────────────────────────────────────
 app.use('/api/auth', authRouter);
 
@@ -327,15 +352,17 @@ app.get('/api/buildings/:id/participants', async (req: Request, res: Response) =
 
 app.post('/api/buildings/:id/participants', async (req: Request, res: Response) => {
   const { id, nodeId, name, status } = req.body;
-  const buildingId = req.params.id;
+  const buildingId = req.params.id as string;
   if (!id || !nodeId) return res.status(400).json({ error: 'id and nodeId required' });
 
   try {
     // Optimization: Check for existing participant and throttle updates (e.g., 2s cooldown)
     const existing = await ParticipantModel.findOne({ id }).lean();
+    const oldNodeId = existing?.nodeId;
+    
     if (existing && (Date.now() - new Date(existing.lastActive).getTime() < 2000)) {
       // If position/status hasn't changed much, we can skip the write
-      if (existing.nodeId === nodeId && existing.status === status) {
+      if (oldNodeId === nodeId && existing.status === status) {
         return res.json(existing);
       }
     }
@@ -345,6 +372,13 @@ app.post('/api/buildings/:id/participants', async (req: Request, res: Response) 
       { id, buildingId, nodeId, name, status, lastActive: new Date() },
       { upsert: true, new: true }
     );
+    
+    // Check if user transitioned between nodes
+    if (oldNodeId !== nodeId) {
+      if (oldNodeId) updateRefugeOccupancy(buildingId, oldNodeId);
+      updateRefugeOccupancy(buildingId, nodeId);
+    }
+    
     return res.status(201).json(p);
   } catch (err: any) { 
     return res.status(500).json({ error: err.message }); 
@@ -483,7 +517,17 @@ startServer();
 setInterval(async () => {
   const cutoff = new Date(Date.now() - 120000);
   try {
-    await ParticipantModel.deleteMany({ lastActive: { $lt: cutoff } });
+    const inactive = await ParticipantModel.find({ lastActive: { $lt: cutoff } });
+    if (inactive.length > 0) {
+      await ParticipantModel.deleteMany({ _id: { $in: inactive.map(p => p._id) } });
+      
+      // Update refuges if dropped users were in them
+      const nodesToUpdate = new Set(inactive.map(p => `${p.buildingId}|${p.nodeId}`));
+      nodesToUpdate.forEach(compound => {
+        const [bId, nId] = compound.split('|');
+        if (bId && nId) updateRefugeOccupancy(bId, nId);
+      });
+    }
   } catch (err) {
     console.error('⚠️  Participant cleanup failed:', err);
   }

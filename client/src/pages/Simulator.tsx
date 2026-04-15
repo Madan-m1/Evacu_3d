@@ -3,7 +3,7 @@ import { BuildingScene } from '../components/3d/BuildingScene';
 import { ControlPanel } from '../components/ControlPanel';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import { useSimulationStore } from '../store/simulationStore';
-import { Building2, ChevronRight, Plus, ShieldAlert } from 'lucide-react';
+import { Building2, ChevronRight, Plus, ShieldAlert, Home } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 const Simulator = () => {
@@ -126,10 +126,14 @@ const Simulator = () => {
   return (
     <div className="h-screen w-full flex overflow-hidden bg-black">
       {/* 3D Viewer */}
-      <div className="flex-1 p-4 flex flex-col items-center justify-center">
-        <div className="w-full h-full p-2 border border-gray-800 bg-gray-900 rounded-2xl relative shadow-2xl">
-          {/* Building badge */}
-          <div className="absolute top-4 right-4 z-10 flex items-center gap-2 bg-black/60 backdrop-blur px-3 py-1.5 rounded-lg border border-gray-700 text-xs text-gray-300">
+      <div className="flex-1 relative">
+        {/* Top bar with navigation + building badge */}
+        <div className="absolute top-3 left-3 right-3 z-10 flex items-center justify-between pointer-events-none">
+          <Link to="/" className="pointer-events-auto flex items-center gap-1.5 bg-black/60 backdrop-blur px-3 py-1.5 rounded-lg border border-gray-700 text-xs text-gray-300 hover:text-white hover:border-gray-500 transition">
+            <Home size={12} />
+            <span>Home</span>
+          </Link>
+          <div className="pointer-events-auto flex items-center gap-2 bg-black/60 backdrop-blur px-3 py-1.5 rounded-lg border border-gray-700 text-xs text-gray-300">
             <Building2 size={12} className="text-blue-400" />
             {currentBuildingName}
             <button
@@ -138,28 +142,31 @@ const Simulator = () => {
               title="Switch building"
             >↩</button>
           </div>
+        </div>
 
+        {/* 3D Canvas - absolute fill to guarantee dimensions */}
+        <div className="absolute inset-0">
           <ErrorBoundary>
             <BuildingScene />
           </ErrorBoundary>
+        </div>
 
-          {/* Legend */}
-          <div className="absolute top-6 left-6 bg-black/60 backdrop-blur-md p-4 rounded-xl border border-gray-700 text-sm">
-            <h3 className="text-white font-bold mb-3 border-b border-gray-600 pb-2">Map Legend</h3>
-            <div className="space-y-2">
-              {[
-                { color: 'bg-blue-500', label: 'Room / Area' },
-                { color: 'bg-emerald-500', label: 'Safe Exit' },
-                { color: 'bg-purple-500', label: 'Refuge Area' },
-                { color: 'bg-red-500 animate-pulse', label: 'Fire / Obstacle' },
-                { color: 'bg-blue-400', label: 'Other Users' },
-              ].map(item => (
-                <div key={item.label} className="flex items-center gap-2">
-                  <div className={`w-3 h-3 rounded-full ${item.color} shadow-lg`} />
-                  <span className="text-gray-300">{item.label}</span>
-                </div>
-              ))}
-            </div>
+        {/* Legend */}
+        <div className="absolute top-12 left-3 z-10 bg-black/60 backdrop-blur-md p-3 rounded-xl border border-gray-700 text-xs">
+          <h3 className="text-white font-bold mb-3 border-b border-gray-600 pb-2">Map Legend</h3>
+          <div className="space-y-2">
+            {[
+              { color: 'bg-blue-500', label: 'Room / Area' },
+              { color: 'bg-emerald-500', label: 'Safe Exit' },
+              { color: 'bg-purple-500', label: 'Refuge Area' },
+              { color: 'bg-red-500 animate-pulse', label: 'Fire / Obstacle' },
+              { color: 'bg-blue-400', label: 'Other Users' },
+            ].map(item => (
+              <div key={item.label} className="flex items-center gap-2">
+                <div className={`w-3 h-3 rounded-full ${item.color} shadow-lg`} />
+                <span className="text-gray-300">{item.label}</span>
+              </div>
+            ))}
           </div>
         </div>
       </div>

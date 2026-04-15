@@ -11,8 +11,8 @@ export const BuildingScene: React.FC = () => {
   const { nodes, participants, localParticipantId } = useSimulationStore();
   
   return (
-    <div className="w-full h-full bg-slate-900 rounded-xl overflow-hidden border border-gray-700 shadow-2xl">
-      <Canvas camera={{ position: [0, 15, 20], fov: 45 }} shadows>
+    <div style={{ width: '100%', height: '100%', position: 'absolute', inset: 0 }}>
+      <Canvas camera={{ position: [0, 15, 20], fov: 45 }} shadows style={{ width: '100%', height: '100%' }}>
         <color attach="background" args={['#0f172a']} />
         
         <ambientLight intensity={0.4} />
@@ -46,3 +46,4 @@ export const BuildingScene: React.FC = () => {
     </div>
   );
 };
+

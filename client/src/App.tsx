@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import ProtectedRoute from './components/ProtectedRoute';
 import Home from './pages/Home';
@@ -11,10 +11,13 @@ import Simulator from './pages/Simulator';
 import Dashboard from './pages/Dashboard';
 import Setup from './pages/Setup';
 
-const App: React.FC = () => {
+const AppLayout: React.FC = () => {
+  const location = useLocation();
+  const hideNavbar = location.pathname === '/simulator';
+
   return (
-    <BrowserRouter>
-      <Navbar />
+    <>
+      {!hideNavbar && <Navbar />}
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/about" element={<About />} />
@@ -32,8 +35,17 @@ const App: React.FC = () => {
           }
         />
       </Routes>
+    </>
+  );
+};
+
+const App: React.FC = () => {
+  return (
+    <BrowserRouter>
+      <AppLayout />
     </BrowserRouter>
   );
 };
 
 export default App;
+

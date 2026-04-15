@@ -72,6 +72,7 @@ interface SimulationState {
   simulationMode: 'exit' | 'refuge' | 'none';
   simulationMessage: string | null;
   socket: Socket | null;
+  refugeOccupancy: Record<string, number>;
 
   // ─── Actions ──────────────────────────────────────────
   fetchBuildings: () => Promise<void>;
@@ -109,6 +110,7 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
   simulationMode: 'none',
   simulationMessage: null,
   socket: null,
+  refugeOccupancy: {},
 
   fetchBuildings: async () => {
     try {
@@ -150,6 +152,11 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
         const { hazards } = get();
         const newHazards = hazards.filter(h => h.nodeId !== nodeId);
         set({ hazards: newHazards, activeHazards: newHazards.map(x => x.nodeId) });
+      });
+
+      newSocket.on('refuge:update', ({ refugeId, currentOccupancy }: any) => {
+        const { refugeOccupancy } = get();
+        set({ refugeOccupancy: { ...refugeOccupancy, [refugeId]: currentOccupancy } });
       });
 
       set({
@@ -198,7 +205,13 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
     try {
       const res = await fetch(getApiUrl(`/api/buildings/${currentBuildingId}/participants`));
       const participants: ParticipantData[] = await res.json();
-      set({ participants });
+      
+      const counts: Record<string, number> = {};
+      participants.forEach(p => {
+        counts[p.nodeId] = (counts[p.nodeId] || 0) + 1;
+      });
+
+      set({ participants, refugeOccupancy: counts });
     } catch (err) {
       console.error('Failed to sync participants:', err);
     }
@@ -212,14 +225,31 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
     if (simulationMode === 'exit') status = 'evacuating';
     if (simulationMode === 'refuge') status = 'refuge_mode';
 
+    // Use real user identity when authenticated
+    let participantId = localParticipantId;
+    let participantName = `Guest ${localParticipantId.split('_')[1]?.slice(0, 4) || '?'}`;
+
+    try {
+      const raw = localStorage.getItem('evacu3d_auth');
+      if (raw) {
+        const { user } = JSON.parse(raw);
+        if (user?.email) {
+          participantId = user.id || localParticipantId;
+          // Use the part before @ as display name, or full email if short
+          const emailUser = user.email.split('@')[0];
+          participantName = emailUser.length <= 20 ? emailUser : user.email;
+        }
+      }
+    } catch { /* use defaults */ }
+
     try {
       await fetch(getApiUrl(`/api/buildings/${currentBuildingId}/participants`), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          id: localParticipantId,
+          id: participantId,
           nodeId: startNode,
-          name: `User ${localParticipantId.split('_')[1]}`,
+          name: participantName,
           status,
         }),
       });
