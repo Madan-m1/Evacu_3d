@@ -209,12 +209,7 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
       const res = await fetch(getApiUrl(`/api/buildings/${currentBuildingId}/participants`));
       const participants: ParticipantData[] = await res.json();
       
-      const counts: Record<string, number> = {};
-      participants.forEach(p => {
-        counts[p.nodeId] = (counts[p.nodeId] || 0) + 1;
-      });
-
-      set({ participants, refugeOccupancy: counts });
+      set({ participants });
     } catch (err) {
       console.error('Failed to sync participants:', err);
     }

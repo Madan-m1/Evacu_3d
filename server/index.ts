@@ -62,9 +62,31 @@ const io = new Server(httpServer, {
 io.on('connection', (socket) => {
   console.log(`🔌 New client connected: ${socket.id}`);
   
-  socket.on('join-building', (buildingId) => {
+  socket.on('join-building', async (buildingId) => {
     socket.join(`building:${buildingId}`);
     console.log(`🏢 Socket ${socket.id} joined building:${buildingId}`);
+    
+    // Send initial refuge statuses to the joining client
+    try {
+      const building = await BuildingModel.findById(buildingId).lean();
+      if (building && (building as any).nodes) {
+        const refuges = (building as any).nodes.filter((n: any) => n.isRefuge);
+        for (const refuge of refuges) {
+          const occupancy = await ParticipantModel.countDocuments({ 
+            buildingId, 
+            nodeId: refuge.id, 
+            status: 'safe_in_refuge' 
+          });
+          socket.emit('refuge:update', {
+            refugeId: refuge.id,
+            currentOccupancy: occupancy,
+            maxCapacity: refuge.capacity || 10
+          });
+        }
+      }
+    } catch (err) {
+      console.error('Initial refuge sync failed:', err);
+    }
   });
 
   socket.on('disconnect', () => {
@@ -94,12 +116,11 @@ const updateRefugeOccupancy = async (buildingId: string, nodeId: string) => {
     const node = (building as any)?.nodes.find((n: any) => n.id === nodeId && n.isRefuge);
     if (!node) return; // Not a refuge, skip
     
-    // Calculate absolute true occupancy from active users
-    const cutoff = new Date(Date.now() - 30000);
+    // Calculate absolute true occupancy from users explicitly safely inside
     const occupancy = await ParticipantModel.countDocuments({ 
       buildingId, 
       nodeId, 
-      lastActive: { $gt: cutoff } 
+      status: 'safe_in_refuge'
     });
     
     io.to(`building:${buildingId}`).emit('refuge:update', {
@@ -373,10 +394,10 @@ app.post('/api/buildings/:id/participants', async (req: Request, res: Response) 
       { upsert: true, new: true }
     );
     
-    // Check if user transitioned between nodes
-    if (oldNodeId !== nodeId) {
+    // Check if user transitioned between nodes or changed status
+    if (oldNodeId !== nodeId || (existing && existing.status !== status)) {
       if (oldNodeId) updateRefugeOccupancy(buildingId, oldNodeId);
-      updateRefugeOccupancy(buildingId, nodeId);
+      if (oldNodeId !== nodeId) updateRefugeOccupancy(buildingId, nodeId);
     }
     
     return res.status(201).json(p);
