@@ -28,15 +28,17 @@ const ParticipantMarker: React.FC<{ participant: ParticipantData; node: NodeData
         <meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.5} />
       </mesh>
       
-      {/* Label */}
-      <Html position={[0, 1.5, 0]} center distanceFactor={10}>
-        <div className="flex flex-col items-center">
-          <div className="bg-gray-900/80 backdrop-blur-sm border border-gray-700 px-2 py-0.5 rounded shadow-lg">
-            <span className="text-[10px] font-bold text-white whitespace-nowrap">{participant.name}</span>
+      {/* Label - Only show if user is NOT in a refuge to avoid overlap with refuge status labels */}
+      {participant.status !== 'safe_in_refuge' && !node.isRefuge && (
+        <Html position={[0, 1.5, 0]} center distanceFactor={10}>
+          <div className="flex flex-col items-center">
+            <div className="bg-gray-900/80 backdrop-blur-sm border border-gray-700 px-2 py-0.5 rounded shadow-lg">
+              <span className="text-[10px] font-bold text-white whitespace-nowrap">{participant.name}</span>
+            </div>
+            <div className="w-0.5 h-1.5 bg-gray-700"></div>
           </div>
-          <div className="w-0.5 h-1.5 bg-gray-700"></div>
-        </div>
-      </Html>
+        </Html>
+      )}
     </group>
   );
 };
