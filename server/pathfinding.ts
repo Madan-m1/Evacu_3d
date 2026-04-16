@@ -52,14 +52,10 @@ export function findEvacuationPath(
 
   const refugePath = dijkstra(graph, startNode, availableRefuges, hazards);
   if (refugePath.length > 0) {
-    const target = refugePath[refugePath.length - 1];
-    const targetNode = refugeNodes.find(n => n.id === target);
-    const capacityMsg = targetNode ? ` (Current occupancy: ${targetNode.occupancy}/${targetNode.capacity})` : '';
-    
     return {
       path: refugePath,
       mode: 'refuge',
-      message: `⚠️ All exits are currently blocked. Please move to the nearest safe refuge area: ${target}${capacityMsg}.`
+      message: `⚠️ All exits are currently blocked. Please follow the highlighted path to the nearest safe refuge area and wait for rescue instructions.`
     };
   }
 

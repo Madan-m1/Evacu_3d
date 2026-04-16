@@ -23,6 +23,7 @@ export const ControlPanel: React.FC = () => {
     confirmedRefugeId,
     confirmArrivalAtRefuge,
     updatePulse,
+    refugeOccupancy,
   } = useSimulationStore();
   const { user, isAuthenticated } = useAuthStore();
   
@@ -99,6 +100,21 @@ export const ControlPanel: React.FC = () => {
               {simulationMode === 'exit' ? '✅ Exit Route Found' : simulationMode === 'refuge' ? '⚠️ Falling Back to Refuge' : '🚨 CRITICAL FAILURE'}
             </h4>
             <p className="text-sm leading-relaxed">{simulationMessage}</p>
+            
+            {simulationMode === 'refuge' && destNode && (
+              <div className="mt-3 pt-3 border-t border-amber-500/30 flex flex-col gap-1.5">
+                <div className="flex justify-between items-center text-xs">
+                  <span className="text-amber-400 font-medium">TARGET REFUGE</span>
+                  <span className="text-white font-bold">{destNode.roomName || destNode.id}</span>
+                </div>
+                <div className="flex justify-between items-center text-xs">
+                  <span className="text-amber-400 font-medium">LIVE OCCUPANCY</span>
+                  <span className={`font-mono font-bold ${(refugeOccupancy[destNode.id] || 0) >= (destNode.capacity || 10) ? 'text-red-400' : 'text-emerald-400'}`}>
+                    {refugeOccupancy[destNode.id] || 0} / {destNode.capacity || 10}
+                  </span>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
