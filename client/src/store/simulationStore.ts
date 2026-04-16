@@ -42,7 +42,7 @@ export interface ParticipantData {
   id: string;
   nodeId: string;
   name: string;
-  status: 'waiting' | 'evacuating' | 'reached_exit' | 'refuge_mode';
+  status: 'waiting' | 'evacuating' | 'reached_exit' | 'refuge_mode' | 'safe_in_refuge';
   lastActive: string;
 }
 
@@ -73,6 +73,7 @@ interface SimulationState {
   simulationMessage: string | null;
   socket: Socket | null;
   refugeOccupancy: Record<string, number>;
+  confirmedRefugeId: string | null;
 
   // ─── Actions ──────────────────────────────────────────
   fetchBuildings: () => Promise<void>;
@@ -85,6 +86,7 @@ interface SimulationState {
   updatePulse: () => Promise<void>;
   setSimulationResult: (path: string[], pathCoordinates: NodeData[], mode: 'exit' | 'refuge' | 'none', message: string) => void;
   resetSimulation: () => void;
+  confirmArrivalAtRefuge: () => void;
 }
 
 export const useSimulationStore = create<SimulationState>((set, get) => ({
@@ -111,6 +113,7 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
   simulationMessage: null,
   socket: null,
   refugeOccupancy: {},
+  confirmedRefugeId: null,
 
   fetchBuildings: async () => {
     try {
@@ -185,7 +188,7 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
     activeHazards: hazards.map(h => h.nodeId),
   }),
 
-  setStartNode: (nodeId) => set({ startNode: nodeId }),
+  setStartNode: (nodeId) => set({ startNode: nodeId, confirmedRefugeId: null }),
 
   syncHazards: async () => {
     const { currentBuildingId } = get();
@@ -218,12 +221,13 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
   },
 
   updatePulse: async () => {
-    const { startNode, localParticipantId, simulationMode, currentBuildingId } = get();
+    const { startNode, localParticipantId, simulationMode, currentBuildingId, confirmedRefugeId } = get();
     if (!startNode || !currentBuildingId) return;
 
     let status: ParticipantData['status'] = 'waiting';
     if (simulationMode === 'exit') status = 'evacuating';
     if (simulationMode === 'refuge') status = 'refuge_mode';
+    if (confirmedRefugeId) status = 'safe_in_refuge';
 
     // Use real user identity when authenticated
     let participantId = localParticipantId;
@@ -248,7 +252,7 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           id: participantId,
-          nodeId: startNode,
+          nodeId: confirmedRefugeId || startNode,
           name: participantName,
           status,
         }),
@@ -302,12 +306,24 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
   },
 
   setSimulationResult: (path, pathCoordinates, mode, message) =>
-    set({ path, pathCoordinates, simulationMode: mode, simulationMessage: message }),
+    set({ path, pathCoordinates, simulationMode: mode, simulationMessage: message, confirmedRefugeId: null }),
 
   resetSimulation: () => set({
     path: [],
     pathCoordinates: [],
     simulationMode: 'none',
     simulationMessage: null,
+    confirmedRefugeId: null,
   }),
+
+  confirmArrivalAtRefuge: () => {
+    const { path, nodes } = get();
+    if (path.length > 0) {
+      const destId = path[path.length - 1];
+      const destNode = nodes.find(n => n.id === destId);
+      if (destNode?.isRefuge) {
+        set({ confirmedRefugeId: destId });
+      }
+    }
+  },
 }));

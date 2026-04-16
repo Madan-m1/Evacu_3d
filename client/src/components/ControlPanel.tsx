@@ -19,11 +19,19 @@ export const ControlPanel: React.FC = () => {
     simulationMessage,
     currentBuildingId,
     hazards,
+    path,
+    confirmedRefugeId,
+    confirmArrivalAtRefuge,
+    updatePulse,
   } = useSimulationStore();
   const { user, isAuthenticated } = useAuthStore();
   
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const destNodeId = path[path.length - 1];
+  const destNode = nodes.find(n => n.id === destNodeId);
+  const isRefugeDest = destNode?.isRefuge && simulationMode === 'refuge';
 
   // Poll for shared hazard awareness
   React.useEffect(() => {
@@ -143,6 +151,29 @@ export const ControlPanel: React.FC = () => {
                 </li>
               )}
             </ul>
+            {isRefugeDest && path.length > 0 && (
+              <div className="mt-4 pt-4 border-t border-gray-700/50">
+                {!confirmedRefugeId ? (
+                  <button 
+                    onClick={() => {
+                      confirmArrivalAtRefuge();
+                      // Timeout to ensure state resolves before pulse
+                      setTimeout(() => updatePulse(), 50); 
+                    }}
+                    className="w-full py-2.5 rounded-lg font-bold bg-purple-600 hover:bg-purple-500 text-white transition-all shadow-lg shadow-purple-600/20 text-sm flex items-center justify-center gap-2"
+                  >
+                    <ShieldAlert size={16} /> I have reached the refuge
+                  </button>
+                ) : (
+                  <button 
+                    disabled
+                    className="w-full py-2.5 rounded-lg font-bold bg-emerald-900/30 border border-emerald-500/50 text-emerald-400 transition-all cursor-default text-sm flex items-center justify-center gap-2"
+                  >
+                    ✅ You are safe in this refuge
+                  </button>
+                )}
+              </div>
+            )}
           </div>
         </div>
 
