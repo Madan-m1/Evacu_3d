@@ -9,6 +9,8 @@ import { io, Socket } from 'socket.io-client';
 import { useAuthStore } from '../store/authStore';
 import VisualBuilder, { type Node, type Edge } from '../components/Admin/VisualBuilder';
 import { API_URL, getApiUrl } from '../api/config';
+import ConfirmModal from '../components/ConfirmModal';
+import FlashMessage from '../components/FlashMessage';
 
 interface Building {
   _id: string;
@@ -68,11 +70,21 @@ export default function Dashboard() {
   const [newBuildingName, setNewBuildingName] = useState('');
   const [showNewBuildingForm, setShowNewBuildingForm] = useState(false);
   const [newHazard, setNewHazard] = useState<Partial<Hazard>>({ type: 'fire', severity: 1 });
+  const [confirmModal, setConfirmModal] = useState<{
+    title: string;
+    message: string;
+    onConfirm: () => void;
+  } | null>(null);
 
+  // Flash: auto-dismiss is handled inside FlashMessage component
   const flash = (text: string, type: 'success' | 'error' = 'success') => {
     setMsg({ text, type });
-    setTimeout(() => setMsg(null), 3500);
   };
+
+  const openConfirm = (title: string, message: string, onConfirm: () => void) => {
+    setConfirmModal({ title, message, onConfirm });
+  };
+  const closeConfirm = () => setConfirmModal(null);
 
   const fetchBuildings = useCallback(async () => {
     try {
@@ -155,13 +167,19 @@ export default function Dashboard() {
     } catch { flash('Update failed', 'error'); }
   };
   
-  const deleteUser = async (id: string) => {
-    if (!confirm('Permanent delete?')) return;
-    try {
-      await fetch(`${API}/users/${id}`, { method: 'DELETE', headers: getAuthHeader() });
-      setUsersList(usersList.filter(u => u._id !== id));
-      flash('User deleted');
-    } catch { flash('Delete failed', 'error'); }
+  const deleteUser = (id: string) => {
+    openConfirm(
+      'Delete User',
+      'This will permanently delete this user account. This action cannot be undone.',
+      async () => {
+        closeConfirm();
+        try {
+          await fetch(`${API}/users/${id}`, { method: 'DELETE', headers: getAuthHeader() });
+          setUsersList(usersList.filter(u => u._id !== id));
+          flash('User deleted');
+        } catch { flash('Delete failed', 'error'); }
+      }
+    );
   };
 
   const deleteMessage = async (id: string) => {
@@ -190,18 +208,24 @@ export default function Dashboard() {
     } catch (err: any) { flash(`Error: ${err.message}`, 'error'); }
   };
 
-  const handleDeleteBuilding = async () => {
+  const handleDeleteBuilding = () => {
     if (!currentBuildingId) return;
     const building = buildings.find(b => b._id === currentBuildingId);
-    if (!confirm(`Delete "${building?.name}"? This cannot be undone.`)) return;
-    try {
-      await fetch(`${API}/buildings/${currentBuildingId}`, { method: 'DELETE', headers: getAuthHeader() });
-      flash('Building deleted');
-      const remaining = buildings.filter(b => b._id !== currentBuildingId);
-      setBuildings(remaining);
-      setCurrentBuildingId(remaining.length > 0 ? remaining[0]._id : null);
-      setCurrentBuilding(null);
-    } catch (err: any) { flash(`Error: ${err.message}`, 'error'); }
+    openConfirm(
+      'Delete Building',
+      `Delete "${building?.name}"? All nodes, edges, and hazard data will be permanently removed. This cannot be undone.`,
+      async () => {
+        closeConfirm();
+        try {
+          await fetch(`${API}/buildings/${currentBuildingId}`, { method: 'DELETE', headers: getAuthHeader() });
+          flash('Building deleted');
+          const remaining = buildings.filter(b => b._id !== currentBuildingId);
+          setBuildings(remaining);
+          setCurrentBuildingId(remaining.length > 0 ? remaining[0]._id : null);
+          setCurrentBuilding(null);
+        } catch (err: any) { flash(`Error: ${err.message}`, 'error'); }
+      }
+    );
   };
 
   const saveLayout = async (updatedNodes: Node[], updatedEdges: Edge[]) => {
@@ -320,19 +344,43 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-[#0f1117] text-white overflow-hidden flex flex-col">
       {/* ─── Header ──────────────────────────────────────────────────────────── */}
-      <header className="bg-[#1a1d2e] border-b border-gray-800 px-6 py-3 flex items-center gap-4 shrink-0 shadow-lg z-20">
-        <Link to="/" className="text-gray-400 hover:text-white transition-colors">
-          <ArrowLeft size={20} />
-        </Link>
-        <LayoutDashboard className="text-blue-400" size={22} />
-        <h1 className="text-lg font-bold">Evacu3D Admin</h1>
+      <header className="bg-[#1a1d2e] border-b border-gray-800 px-4 py-3 shrink-0 shadow-lg z-20">
+        {/* Row 1: Brand + Right actions */}
+        <div className="flex items-center gap-3 min-w-0">
+          <Link to="/" className="text-gray-400 hover:text-white transition-colors shrink-0" aria-label="Back to home">
+            <ArrowLeft size={20} />
+          </Link>
+          <LayoutDashboard className="text-blue-400 shrink-0" size={20} />
+          <h1 className="text-base font-bold truncate">Evacu3D Admin</h1>
 
-        {/* ─── Building Selector ──────── */}
-        <div className="ml-4 flex items-center gap-2">
-          <Building2 size={16} className="text-gray-400" />
+          {/* Right-side actions pushed to end */}
+          <div className="ml-auto flex items-center gap-2 shrink-0">
+            <button
+              onClick={() => currentBuildingId && fetchBuildingData(currentBuildingId)}
+              aria-label="Refresh building data"
+              className="flex items-center gap-1.5 text-gray-400 hover:text-white text-xs px-3 py-1.5 bg-gray-800 rounded-lg hover:bg-gray-700 transition"
+            >
+              <RefreshCw size={13} className={loading ? 'animate-spin' : ''} />
+              <span className="hidden sm:inline">Refresh</span>
+            </button>
+            <Link
+              to="/simulator"
+              className="flex items-center gap-1.5 text-xs bg-blue-600 text-white px-3 py-1.5 rounded-lg hover:bg-blue-500 transition font-medium"
+            >
+              <PlayCircle size={13} />
+              <span className="hidden sm:inline">Simulator</span>
+            </Link>
+          </div>
+        </div>
+
+        {/* Row 2: Building controls — wraps gracefully */}
+        <div className="flex flex-wrap items-center gap-2 mt-2.5 pt-2.5 border-t border-gray-800/60">
+          <Building2 size={14} className="text-gray-500 shrink-0" />
+
+          {/* Selector */}
           <div className="relative">
             <select
-              className="bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-1.5 text-sm pr-8 appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-1.5 text-xs pr-7 appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 max-w-[180px]"
               value={currentBuildingId || ''}
               onChange={e => setCurrentBuildingId(e.target.value)}
             >
@@ -341,103 +389,95 @@ export default function Dashboard() {
                 <option key={b._id} value={b._id}>{b.name}</option>
               ))}
             </select>
-            <ChevronDown size={14} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+            <ChevronDown size={12} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
           </div>
 
-          {/* New Building Button */}
           <button
             onClick={() => setShowNewBuildingForm(v => !v)}
             className="flex items-center gap-1 text-xs bg-blue-600 hover:bg-blue-500 text-white px-3 py-1.5 rounded-lg transition"
           >
-            <Plus size={14} /> New
+            <Plus size={12} /> New
           </button>
 
-          {/* Delete Building Button */}
           {currentBuildingId && (
             <button
               onClick={handleDeleteBuilding}
+              aria-label="Delete current building"
+              title="Delete building"
               className="flex items-center gap-1 text-xs bg-red-900/40 hover:bg-red-800/60 border border-red-800/50 text-red-400 px-3 py-1.5 rounded-lg transition"
             >
-              <Trash2 size={14} />
+              <Trash2 size={12} />
             </button>
           )}
+
+          {/* Inline new-building form */}
+          {showNewBuildingForm && (
+            <div className="flex items-center gap-2 flex-wrap">
+              <input
+                className="bg-gray-800 border border-gray-700 text-white rounded px-3 py-1.5 text-xs w-36"
+                placeholder="Building name..."
+                value={newBuildingName}
+                onChange={e => setNewBuildingName(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && handleCreateBuilding()}
+                autoFocus
+              />
+              <button
+                onClick={handleCreateBuilding}
+                className="text-xs bg-emerald-600 hover:bg-emerald-500 px-3 py-1.5 rounded text-white transition"
+              >Create</button>
+              <button onClick={() => setShowNewBuildingForm(false)} className="text-gray-500 hover:text-white text-xs">✕</button>
+            </div>
+          )}
         </div>
-
-        {/* New Building Form */}
-        {showNewBuildingForm && (
-          <div className="flex items-center gap-2 ml-2">
-            <input
-              className="bg-gray-800 border border-gray-700 text-white rounded px-3 py-1.5 text-sm"
-              placeholder="Building name..."
-              value={newBuildingName}
-              onChange={e => setNewBuildingName(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && handleCreateBuilding()}
-              autoFocus
-            />
-            <button
-              onClick={handleCreateBuilding}
-              className="text-xs bg-emerald-600 hover:bg-emerald-500 px-3 py-1.5 rounded text-white transition"
-            >Create</button>
-            <button onClick={() => setShowNewBuildingForm(false)} className="text-gray-500 hover:text-white text-xs">✕</button>
-          </div>
-        )}
-
-        <button
-          onClick={() => currentBuildingId && fetchBuildingData(currentBuildingId)}
-          className="ml-auto flex items-center gap-2 text-gray-400 hover:text-white text-sm px-3 py-1.5 bg-gray-800 rounded-lg hover:bg-gray-700 transition"
-        >
-          <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
-          Refresh
-        </button>
-        <Link
-          to="/simulator"
-          className="flex items-center gap-2 text-sm bg-blue-600 text-white px-4 py-1.5 rounded-lg hover:bg-blue-500 transition ml-2 font-medium"
-        >
-          <PlayCircle size={16} /> Open Simulator
-        </Link>
       </header>
 
       {/* Flash message */}
       {msg && (
-        <div className={`absolute top-20 left-1/2 -translate-x-1/2 z-50 px-6 py-3 rounded-lg shadow-2xl font-medium text-sm flex items-center gap-2 border ${
-          msg.type === 'error' ? 'bg-red-900/90 border-red-700 text-red-100' : 'bg-emerald-900/90 border-emerald-600 text-emerald-100'
-        }`}>
-          {msg.text}
+        <div className="absolute top-20 left-1/2 -translate-x-1/2 z-50 w-full max-w-sm px-4">
+          <FlashMessage
+            text={msg.text}
+            type={msg.type}
+            onClose={() => setMsg(null)}
+          />
         </div>
       )}
 
       <div className="flex flex-1 overflow-hidden">
         {/* ─── Sidebar ─────────────────────────────────────────────────────────── */}
-        <div className="w-56 bg-[#1a1d2e] border-r border-gray-800 p-4 shrink-0 flex flex-col gap-2">
+        <div className="w-12 sm:w-56 bg-[#1a1d2e] border-r border-gray-800 p-2 sm:p-4 shrink-0 flex flex-col gap-1 sm:gap-2">
           {(['layout', 'hazards', 'simulation', 'users', 'messages', 'security'] as const).map(tab => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`flex items-center gap-3 w-full px-4 py-3 rounded-xl transition font-medium text-sm capitalize ${
+              title={tab}
+              className={`flex items-center gap-3 w-full px-2 sm:px-4 py-2.5 sm:py-3 rounded-xl transition font-medium text-sm capitalize ${
                 activeTab === tab
                   ? tab === 'hazards' ? 'bg-red-900/20 text-red-400 border border-red-900/30' : 'bg-blue-900/20 text-blue-400 border border-blue-800/30'
                   : 'text-gray-400 hover:bg-gray-800 hover:text-white'
               }`}
             >
-              {tab === 'layout' && <Grid size={16} />}
-              {tab === 'hazards' && <ShieldAlert size={16} />}
-              {tab === 'simulation' && <Users size={16} />}
-              {tab === 'users' && <UserCog size={16} />}
-              {tab === 'messages' && <Mail size={16} />}
-              {tab === 'security' && <ShieldCheck size={16} />}
-              {tab === 'layout' ? 'Building Layout' : tab === 'hazards' ? 'Hazards' : tab === 'simulation' ? 'Active Users' : tab === 'users' ? 'Manage Users' : tab === 'messages' ? 'Messages' : 'Security'}
+              {tab === 'layout' && <Grid size={16} className="shrink-0" />}
+              {tab === 'hazards' && <ShieldAlert size={16} className="shrink-0" />}
+              {tab === 'simulation' && <Users size={16} className="shrink-0" />}
+              {tab === 'users' && <UserCog size={16} className="shrink-0" />}
+              {tab === 'messages' && <Mail size={16} className="shrink-0" />}
+              {tab === 'security' && <ShieldCheck size={16} className="shrink-0" />}
+              {/* Labels only visible on sm+ */}
+              <span className="hidden sm:inline truncate">
+                {tab === 'layout' ? 'Building Layout' : tab === 'hazards' ? 'Hazards' : tab === 'simulation' ? 'Active Users' : tab === 'users' ? 'Manage Users' : tab === 'messages' ? 'Messages' : 'Security'}
+              </span>
               {tab === 'hazards' && hazards.length > 0 && (
-                <span className="ml-auto bg-red-500 text-white text-[10px] px-1.5 py-0.5 rounded-full">{hazards.length}</span>
+                <span className="ml-auto bg-red-500 text-white text-[10px] px-1.5 py-0.5 rounded-full hidden sm:inline">{hazards.length}</span>
               )}
               {tab === 'simulation' && participants.length > 0 && (
-                <span className="ml-auto bg-blue-500 text-white text-[10px] px-1.5 py-0.5 rounded-full">{participants.length}</span>
+                <span className="ml-auto bg-blue-500 text-white text-[10px] px-1.5 py-0.5 rounded-full hidden sm:inline">{participants.length}</span>
               )}
             </button>
           ))}
         </div>
 
         {/* ─── Content ─────────────────────────────────────────────────────────── */}
-        <div className="flex-1 overflow-y-auto custom-scrollbar p-6 bg-[#13151f]">
+        <div className="flex-1 overflow-y-auto custom-scrollbar p-3 sm:p-6 bg-[#13151f]">
 
           {!currentBuildingId && (
             <div className="flex flex-col items-center justify-center h-full text-center gap-4">
@@ -517,6 +557,7 @@ export default function Dashboard() {
                 <div className="p-4 border-b border-gray-800">
                   <h3 className="font-semibold text-gray-300 flex items-center gap-2"><ShieldAlert size={16} /> Active Hazards</h3>
                 </div>
+                <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead className="bg-gray-900/50 text-gray-400 text-xs uppercase">
                     <tr>
@@ -529,7 +570,7 @@ export default function Dashboard() {
                   </thead>
                   <tbody className="divide-y divide-gray-800">
                     {hazards.length === 0 ? (
-                      <tr><td colSpan={6} className="px-6 py-10 text-center text-emerald-500/70">✨ No active hazards</td></tr>
+                      <tr><td colSpan={6} className="px-6 py-10 text-center text-emerald-500">✨ No active hazards</td></tr>
                     ) : hazards.map(h => (
                       <tr key={h.nodeId} className="hover:bg-red-900/5 transition">
                         <td className="px-6 py-4">
@@ -579,6 +620,7 @@ export default function Dashboard() {
                 </table>
               </div>
             </div>
+          </div>
           )}
 
           {currentBuildingId && activeTab === 'simulation' && (
@@ -595,6 +637,7 @@ export default function Dashboard() {
                     Total: {participants.length}
                   </div>
                 </div>
+                <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead className="bg-gray-900/50 text-gray-400 text-xs uppercase">
                     <tr>
@@ -606,7 +649,7 @@ export default function Dashboard() {
                   </thead>
                   <tbody className="divide-y divide-gray-800">
                     {participants.length === 0 ? (
-                      <tr><td colSpan={4} className="px-6 py-10 text-center text-gray-600">No active connections</td></tr>
+                      <tr><td colSpan={4} className="px-6 py-10 text-center text-gray-400">No active connections</td></tr>
                     ) : participants.map(p => (
                       <tr key={p.id} className="hover:bg-gray-800/30 transition">
                         <td className="px-6 py-4">
@@ -645,6 +688,7 @@ export default function Dashboard() {
                 </table>
               </div>
             </div>
+          </div>
           )}
 
           {activeTab === 'users' && (
@@ -793,6 +837,19 @@ export default function Dashboard() {
 
       {/* Polling refresh */}
       <AutoRefresh onRefresh={() => currentBuildingId && fetchBuildingData(currentBuildingId)} />
+
+      {/* Confirm Modal — replaces all native browser confirm() dialogs */}
+      {confirmModal && (
+        <ConfirmModal
+          isOpen={true}
+          title={confirmModal.title}
+          message={confirmModal.message}
+          confirmLabel="Delete"
+          danger={true}
+          onConfirm={confirmModal.onConfirm}
+          onCancel={closeConfirm}
+        />
+      )}
     </div>
   );
 }

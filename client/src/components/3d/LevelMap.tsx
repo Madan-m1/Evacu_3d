@@ -4,11 +4,11 @@ import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { useSimulationStore, type NodeData } from '../../store/simulationStore';
 
-const FloorLabel: React.FC<{ 
-  position: [number, number, number]; 
-  label: string; 
-  isExit: boolean; 
-  isRefuge: boolean; 
+const FloorLabel: React.FC<{
+  position: [number, number, number];
+  label: string;
+  isExit: boolean;
+  isRefuge: boolean;
   isSelected: boolean;
   occupancy?: number;
   capacity?: number;
@@ -24,14 +24,18 @@ const FloorLabel: React.FC<{
   participantCount = 0,
 }) => {
   const meshRef = useRef<THREE.Mesh>(null);
-  
+
+  // Read drawer state and mobile flag from the store
+  // This is the primary label-suppression mechanism:
+  // when the drawer covers the 3D scene, Html labels are fully unmounted.
+  const drawerOpen = useSimulationStore(s => s.drawerOpen);
+  const isMobileViewport = typeof window !== 'undefined' && window.innerWidth < 768;
+
   // Crowd awareness: Red glow intensity based on participant count
-  const crowdFactor = Math.min(participantCount / 5, 1); // Max intensity at 5+ people
+  const crowdFactor = Math.min(participantCount / 5, 1);
   const baseColor = isExit ? '#10b981' : isRefuge ? '#8b5cf6' : isSelected ? '#60a5fa' : '#334155';
-  
-  // Mix base color with red if crowded
   const color = new THREE.Color(baseColor).lerp(new THREE.Color('#ef4444'), crowdFactor * 0.6);
-  const emissive = isExit ? '#10b981' : isRefuge ? '#7c3aed' : isSelected ? '#3b82f6' : 
+  const emissive = isExit ? '#10b981' : isRefuge ? '#7c3aed' : isSelected ? '#3b82f6' :
                    crowdFactor > 0.3 ? '#ef4444' : '#1e293b';
 
   useFrame(({ clock }) => {
@@ -39,6 +43,16 @@ const FloorLabel: React.FC<{
       meshRef.current.scale.setScalar(1 + Math.sin(clock.elapsedTime * 3) * 0.04);
     }
   });
+
+  // ── Mobile label priority rules ───────────────────────────────────────────
+  // Rule 1: Never show ANY Html label when the mobile drawer is open.
+  //         The drawer covers the scene; labels would bleed through.
+  // Rule 2: When the drawer is closed on mobile, show ONLY priority labels:
+  //         exits, refuges, and the currently selected node.
+  //         Regular room labels are hidden to reduce clutter on small screens.
+  const showHtmlLabel = isMobileViewport
+    ? !drawerOpen && (isExit || isRefuge || isSelected)
+    : true; // always show all labels on desktop
 
 
   return (
@@ -97,41 +111,47 @@ const FloorLabel: React.FC<{
         <pointLight color={isExit ? "#10b981" : "#8b5cf6"} intensity={2} distance={4} position={[0, 1, 0]} />
       )}
 
-      {/* DOM-based Html label for perfect clarity and styling */}
-      <Html
-        position={[0, 1.8, 0]}
-        center
-        distanceFactor={15} // Adds smart scaling based on camera distance
-        zIndexRange={[100, 0]}
-        className="pointer-events-none select-none transition-opacity duration-300 ease-in-out block"
-      >
-        <div className="flex flex-col items-center animate-fade-in-up">
-          {/* Main Label */}
-          <div className={
-            `px-3 py-1.5 rounded-lg backdrop-blur-md border shadow-[0_0_15px_rgba(0,0,0,0.5)] whitespace-nowrap flex items-center justify-center font-bold tracking-wide ` +
-            (isExit ? 'bg-emerald-900/90 border-emerald-500/50 text-emerald-100 shadow-emerald-900/50' :
-             isRefuge ? 'bg-purple-900/90 border-purple-500/50 text-purple-100 shadow-purple-900/50' :
-             isSelected ? 'bg-blue-900/90 border-blue-500/50 text-blue-100 shadow-blue-900/50' :
-             'bg-slate-900/85 border-slate-700/50 text-slate-200 shadow-slate-900/50')
-          }>
-            {label}
-          </div>
-
-          {/* Stacked Capacity Badge - Dynamic Real-Time Status Colors */}
-          {isRefuge && (
+      {/* Html label — conditionally rendered based on mobile priority rules */}
+      {showHtmlLabel && (
+        <>
+          {/* capped below z-50 drawer — can never win stacking war */}
+          <Html
+            position={[0, 1.8, 0]}
+            center
+            distanceFactor={15}
+            zIndexRange={[45, 0]}
+            occlude
+            className="pointer-events-none select-none transition-opacity duration-300 ease-in-out block sim-label"
+          >
+          <div className="flex flex-col items-center animate-fade-in-up">
+            {/* Main Label — compact on mobile */}
             <div className={
-              `mt-1.5 px-2.5 py-0.5 rounded-md backdrop-blur text-sm font-bold shadow-[0_0_10px_rgba(0,0,0,0.5)] whitespace-nowrap border ` +
-              (occupancy >= capacity 
-                ? 'bg-red-950/95 border-red-500/80 text-red-100 shadow-[0_0_15px_rgba(239,68,68,0.6)] animate-pulse' 
-                : occupancy >= capacity * 0.7 
-                ? 'bg-amber-950/90 border-amber-500/70 text-amber-200'
-                : 'bg-teal-950/90 border-teal-500/60 text-teal-200')
+              `px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg backdrop-blur-md border shadow-[0_0_15px_rgba(0,0,0,0.5)] whitespace-nowrap flex items-center justify-center font-bold tracking-wide text-[10px] sm:text-xs ` +
+              (isExit ? 'bg-emerald-900/90 border-emerald-500/50 text-emerald-100 shadow-emerald-900/50' :
+               isRefuge ? 'bg-purple-900/90 border-purple-500/50 text-purple-100 shadow-purple-900/50' :
+               isSelected ? 'bg-blue-900/90 border-blue-500/50 text-blue-100 shadow-blue-900/50' :
+               'bg-slate-900/85 border-slate-700/50 text-slate-200 shadow-slate-900/50')
             }>
-              Capacity: {occupancy} / {capacity}
+              {label}
             </div>
-          )}
-        </div>
-      </Html>
+
+            {/* Capacity Badge — hidden on mobile to reduce clutter */}
+            {isRefuge && (
+              <div className={
+                `hidden sm:block mt-1.5 px-2.5 py-0.5 rounded-md backdrop-blur text-xs font-bold shadow-[0_0_10px_rgba(0,0,0,0.5)] whitespace-nowrap border ` +
+                (occupancy >= capacity
+                  ? 'bg-red-950/95 border-red-500/80 text-red-100 shadow-[0_0_15px_rgba(239,68,68,0.6)] animate-pulse'
+                  : occupancy >= capacity * 0.7
+                  ? 'bg-amber-950/90 border-amber-500/70 text-amber-200'
+                  : 'bg-teal-950/90 border-teal-500/60 text-teal-200')
+              }>
+                {occupancy} / {capacity}
+              </div>
+            )}
+          </div>
+        </Html>
+        </>
+      )}
     </group>
   );
 };

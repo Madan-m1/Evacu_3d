@@ -167,12 +167,12 @@ export default function VisualBuilder({ initialNodes, initialEdges, onSave }: Pr
   const numCls = "bg-gray-800 border border-gray-700 text-white rounded px-1 py-1 text-sm w-16 text-center focus:outline-none focus:ring-1 focus:ring-blue-500";
 
   return (
-    <div className="flex flex-col bg-gray-900 h-full overflow-y-auto custom-scrollbar p-6 gap-6">
+    <div className="flex flex-col bg-gray-900 h-full overflow-y-auto custom-scrollbar p-4 sm:p-6 gap-4 sm:gap-6">
 
-      {/* ─── Header ──────────────────────────────────────────────────────────── */}
-      <div className="flex justify-between items-center shrink-0">
+      {/* ─── Header ─────────────────────────────────────────────────────────── */}
+      <div className="flex flex-wrap items-center justify-between gap-3 shrink-0">
         <div>
-          <h2 className="text-xl font-bold text-white">Layout Editor</h2>
+          <h2 className="text-lg sm:text-xl font-bold text-white">Layout Editor</h2>
           <p className="text-sm text-gray-400">
             {nodes.length} node{nodes.length !== 1 ? 's' : ''} · {edges.length} edge{edges.length !== 1 ? 's' : ''}
           </p>
@@ -180,7 +180,7 @@ export default function VisualBuilder({ initialNodes, initialEdges, onSave }: Pr
         <button
           onClick={handleSave}
           disabled={saveStatus === 'saving'}
-          className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 disabled:bg-emerald-900 text-white px-4 py-2 rounded-lg shadow-lg transition font-medium"
+          className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 disabled:bg-emerald-900 text-white px-4 py-2 rounded-lg shadow-lg transition font-medium text-sm"
         >
           <Save size={16} />
           {saveStatus === 'saving' ? 'Saving…' : 'Save Layout'}
@@ -205,39 +205,40 @@ export default function VisualBuilder({ initialNodes, initialEdges, onSave }: Pr
 
         {/* ─── Nodes Table ─────────────────────────────────────────────────────── */}
         <div className="bg-[#1a1d2e] rounded-xl border border-gray-800 shadow-lg overflow-hidden">
-          <div className="flex justify-between items-center px-4 py-3 border-b border-gray-800">
-            <div className="flex items-center gap-3">
-              <h3 className="font-semibold text-white text-sm flex items-center">
+          <div className="flex flex-wrap items-center gap-2 px-4 py-3 border-b border-gray-800">
+            <div className="flex items-center gap-3 min-w-0 flex-1">
+              <h3 className="font-semibold text-white text-sm flex items-center shrink-0">
                 Nodes <span className="ml-2 bg-blue-900/30 text-blue-400 border border-blue-800/40 text-xs px-2 py-0.5 rounded-full">{nodes.length}</span>
               </h3>
-              
+
               {/* Floor Selector & Advanced Toggle */}
-              <div className="flex items-center gap-2 ml-2 border-l border-gray-700 pl-4 h-6">
+              <div className="flex items-center gap-2 border-l border-gray-700 pl-3">
                 <div className="flex items-center gap-1.5 bg-gray-800 hover:bg-gray-700 px-2 py-1 rounded-lg transition">
-                  <Layers size={14} className="text-gray-400" />
-                  <select 
-                    value={selectedFloor} 
+                  <Layers size={13} className="text-gray-400 shrink-0" />
+                  <select
+                    value={selectedFloor}
                     onChange={e => setSelectedFloor(Number(e.target.value))}
-                    className="bg-transparent text-xs text-white focus:outline-none cursor-pointer appearance-none outline-none"
-                    title="Select Floor (determines Y coordinate)"
+                    className="bg-transparent text-xs text-white focus:outline-none cursor-pointer appearance-none outline-none max-w-[60px]"
+                    title="Select Floor"
                   >
                     {[1, 2, 3, 4, 5, 6, 7].map(f => (
-                      <option key={f} value={f} className="bg-gray-900">Floor {f}</option>
+                      <option key={f} value={f} className="bg-gray-900">F{f}</option>
                     ))}
                   </select>
                 </div>
-                
-                <button 
+
+                <button
                   type="button"
                   onClick={() => setAdvancedMode(m => !m)}
-                  className={`flex items-center gap-1.5 text-xs px-2 py-1 rounded-lg transition font-medium ${
-                    advancedMode 
-                      ? 'bg-blue-900/40 text-blue-400 border border-blue-800/50' 
+                  className={`flex items-center gap-1 text-xs px-2 py-1 rounded-lg transition font-medium ${
+                    advancedMode
+                      ? 'bg-blue-900/40 text-blue-400 border border-blue-800/50'
                       : 'bg-gray-800/50 border border-transparent text-gray-400 hover:text-white hover:bg-gray-800'
                   }`}
-                  title="Toggle Advanced Mode (Manual Coordinates)"
+                  title="Toggle Advanced Mode"
                 >
-                  <Settings2 size={13} /> Advanced
+                  <Settings2 size={12} />
+                  <span className="hidden sm:inline">Advanced</span>
                 </button>
               </div>
             </div>
@@ -245,7 +246,7 @@ export default function VisualBuilder({ initialNodes, initialEdges, onSave }: Pr
             <button
               type="button"
               onClick={addNode}
-              className="flex items-center gap-1.5 text-xs bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white px-3 py-1.5 rounded-lg transition font-medium select-none"
+              className="flex items-center gap-1.5 text-xs bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white px-3 py-1.5 rounded-lg transition font-medium select-none shrink-0"
             >
               <Plus size={13} /> Add Node
             </button>

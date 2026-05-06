@@ -178,4 +178,73 @@ router.post('/profile', requireAuth(), async (req: Request, res: Response) => {
   }
 });
 
+// ─── Forgot Password ──────────────────────────────────────────────────────────
+router.post('/forgot-password', async (req: Request, res: Response) => {
+  const { email } = req.body;
+  if (!email) return res.status(400).json({ error: 'Email is required' });
+
+  try {
+    const user = await UserModel.findOne({ email: email.toLowerCase() });
+
+    let devToken: string | undefined;
+    if (user) {
+      const token = crypto.randomBytes(32).toString('hex');
+      (user as any).resetToken = token;
+      (user as any).resetTokenExpires = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+      await user.save();
+      devToken = token;
+      console.log(`🔑 [DEV] Password reset token for ${email}: ${token}`);
+    }
+
+    // SECURITY: Always return the same message — never reveal if email exists
+    const baseUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    return res.json({
+      success: true,
+      message: 'If this email is registered, a reset link has been sent.',
+      // Expose reset URL only in dev mode for demo purposes (no SMTP configured)
+      ...(process.env.NODE_ENV !== 'production' && devToken
+        ? { _devResetUrl: `${baseUrl}/reset-password?token=${devToken}` }
+        : {}),
+    });
+  } catch (err: any) {
+    return res.status(500).json({ error: 'Server error. Please try again.' });
+  }
+});
+
+// ─── Reset Password ───────────────────────────────────────────────────────────
+router.post('/reset-password', async (req: Request, res: Response) => {
+  const { token, newPassword } = req.body;
+  if (!token || !newPassword) {
+    return res.status(400).json({ error: 'Reset token and new password are required.' });
+  }
+
+  if (!validatePassword(newPassword)) {
+    return res.status(400).json({
+      error: 'Password must be 8+ characters with uppercase, lowercase, a number, and a special character.',
+    });
+  }
+
+  try {
+    const user = await UserModel.findOne({
+      resetToken: token,
+      resetTokenExpires: { $gt: new Date() },
+    });
+
+    if (!user) {
+      return res.status(400).json({
+        error: 'This reset link is invalid or has expired. Please request a new one.',
+      });
+    }
+
+    user.passwordHash = await bcrypt.hash(newPassword, 10);
+    (user as any).resetToken = undefined;
+    (user as any).resetTokenExpires = undefined;
+    await user.save();
+
+    return res.json({ success: true, message: 'Password updated successfully. You can now sign in.' });
+  } catch (err: any) {
+    return res.status(500).json({ error: 'Server error. Please try again.' });
+  }
+});
+
 export default router;

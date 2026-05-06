@@ -10,10 +10,11 @@ import Register from './pages/Register';
 import Simulator from './pages/Simulator';
 import Dashboard from './pages/Dashboard';
 import Setup from './pages/Setup';
+import ResetPassword from './pages/ResetPassword';
 
 const AppLayout: React.FC = () => {
   const location = useLocation();
-  const hideNavbar = location.pathname === '/simulator';
+  const hideNavbar = location.pathname === '/simulator' || location.pathname === '/reset-password';
 
   return (
     <>
@@ -26,6 +27,7 @@ const AppLayout: React.FC = () => {
         <Route path="/register" element={<Register />} />
         <Route path="/setup" element={<Setup />} />
         <Route path="/simulator" element={<Simulator />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
         <Route
           path="/dashboard"
           element={

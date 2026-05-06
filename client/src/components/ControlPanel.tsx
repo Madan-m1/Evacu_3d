@@ -77,15 +77,15 @@ export const ControlPanel: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col h-screen bg-panelBg border-l border-gray-800 shadow-2xl overflow-y-auto custom-scrollbar">
-      <div className="p-6 border-b border-gray-800 bg-gray-900/50">
-        <h2 className="text-2xl font-bold text-white flex items-center gap-2">
-          <ShieldAlert className="text-alertRed" />
+    <div className="flex flex-col h-full bg-panelBg border-l border-gray-800 shadow-2xl overflow-y-auto custom-scrollbar">
+      <div className="p-4 sm:p-6 border-b border-gray-800 bg-gray-900/50 shrink-0">
+        <h2 className="text-lg sm:text-2xl font-bold text-white flex items-center gap-2">
+          <ShieldAlert className="text-alertRed shrink-0" />
           Simulation Controls
         </h2>
       </div>
 
-      <div className="p-6 space-y-8 flex-1">
+      <div className="p-4 sm:p-6 space-y-6 sm:space-y-8 flex-1">
         
         {/* Simulation Feedback Alert */}
         {simulationMessage && (
@@ -241,7 +241,7 @@ export const ControlPanel: React.FC = () => {
 
       </div>
 
-      <div className="p-6 border-t border-gray-800 bg-gray-900/80 space-y-4">
+      <div className="p-4 sm:p-6 border-t border-gray-800 bg-gray-900/80 space-y-4 shrink-0">
         {error && (
           <div className="bg-red-900/30 border border-alertRed text-red-200 px-4 py-3 rounded-lg text-sm animate-pulse">
             {error}

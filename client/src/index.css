@@ -12,6 +12,7 @@
 @layer base {
   html {
     scroll-behavior: smooth;
+    overflow-x: hidden; /* prevent horizontal scroll globally */
   }
 
   body {
@@ -19,6 +20,13 @@
     @apply bg-darkBg text-white;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    overflow-x: hidden;
+  }
+
+  /* Prevent any child from breaking viewport width */
+  *, *::before, *::after {
+    box-sizing: border-box;
+    min-width: 0; /* allows flex children to shrink below content size */
   }
 
   /* Custom Scrollbar for Premium Feel */
@@ -56,4 +64,27 @@
 
 .animate-fade-in {
   animation: fadeIn 0.4s ease-out both;
+}
+
+/* ─── Accessibility: boost muted-text contrast on dark backgrounds ─── */
+/* Replaces text-gray-500 (#6b7280) usage in body copy to meet WCAG AA.  */
+/* Apply .text-muted instead of text-gray-500 for non-interactive labels. */
+.text-muted {
+  color: #9ca3af; /* gray-400 – 4.6:1 contrast on #0f1117 – passes WCAG AA */
+}
+
+/* ─── Responsive Table Scroll ─── */
+/* Wrap any table in .table-scroll to enable horizontal scroll on mobile */
+.table-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* ─── Simulator 3D Label Responsive Scale ─── */
+/* R3F Html labels rendered in the 3D viewport scale down on narrow screens */
+@media (max-width: 768px) {
+  .sim-label {
+    transform: scale(0.65);
+    transform-origin: bottom center;
+  }
 }

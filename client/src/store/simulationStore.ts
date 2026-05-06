@@ -75,6 +75,9 @@ interface SimulationState {
   refugeOccupancy: Record<string, number>;
   confirmedRefugeId: string | null;
 
+  // ─── UI State (shared with 3D scene) ────────────────────
+  drawerOpen: boolean;
+
   // ─── Actions ──────────────────────────────────────────
   fetchBuildings: () => Promise<void>;
   loadBuilding: (id: string) => Promise<void>;
@@ -87,6 +90,7 @@ interface SimulationState {
   setSimulationResult: (path: string[], pathCoordinates: NodeData[], mode: 'exit' | 'refuge' | 'none', message: string) => void;
   resetSimulation: () => void;
   confirmArrivalAtRefuge: () => void;
+  setDrawerOpen: (open: boolean) => void;
 }
 
 export const useSimulationStore = create<SimulationState>((set, get) => ({
@@ -114,6 +118,7 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
   socket: null,
   refugeOccupancy: {},
   confirmedRefugeId: null,
+  drawerOpen: false,
 
   fetchBuildings: async () => {
     try {
@@ -321,4 +326,6 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
       }
     }
   },
+
+  setDrawerOpen: (open: boolean) => set({ drawerOpen: open }),
 }));

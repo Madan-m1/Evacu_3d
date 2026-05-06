@@ -61,7 +61,9 @@ const UserSchema = new mongoose.Schema({
   email: { type: String, required: true, unique: true, lowercase: true, trim: true },
   passwordHash: { type: String, required: true },
   role: { type: String, enum: ['admin', 'user'], default: 'user' },
-  status: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' }
+  status: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' },
+  resetToken: { type: String },
+  resetTokenExpires: { type: Date },
 }, { timestamps: true });
 
 export const UserModel = mongoose.model('User', UserSchema);

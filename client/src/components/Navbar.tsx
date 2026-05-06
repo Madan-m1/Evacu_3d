@@ -88,8 +88,10 @@ export default function Navbar() {
 
         {/* Mobile hamburger */}
         <button
-          className="md:hidden text-gray-400 hover:text-white p-1"
+          className="md:hidden text-gray-400 hover:text-white p-2 rounded-lg hover:bg-gray-800 transition"
           onClick={() => setMenuOpen(v => !v)}
+          aria-label={menuOpen ? 'Close navigation menu' : 'Open navigation menu'}
+          aria-expanded={menuOpen}
         >
           {menuOpen ? <X size={22} /> : <Menu size={22} />}
         </button>
@@ -97,20 +99,23 @@ export default function Navbar() {
 
       {/* Mobile menu */}
       {menuOpen && (
-        <div className="md:hidden bg-[#0f1117] border-t border-gray-800 px-4 py-4 flex flex-col gap-2">
+        <div className="md:hidden bg-[#0f1117] border-t border-gray-800 px-4 pt-4 pb-6 flex flex-col gap-1">
           {navLinks}
-          <div className="border-t border-gray-800 pt-3 mt-1">
+          <div className="border-t border-gray-800 pt-4 mt-2">
             {isAuthenticated && user ? (
-              <div className="space-y-2">
-                <div className="text-xs text-gray-400 px-2">{user.email} · <span className="text-blue-400">{user.role}</span></div>
-                <button onClick={handleLogout} className="flex items-center gap-2 text-sm text-gray-400 hover:text-white px-2 py-1.5 rounded-lg hover:bg-gray-800 w-full transition">
-                  <LogOut size={14} /> Logout
+              <div className="space-y-3">
+                <div className="text-xs text-gray-400 px-3 py-2 bg-gray-800/40 rounded-lg break-all">
+                  {user.email}
+                  <span className="ml-2 text-blue-400 font-medium">· {user.role}</span>
+                </div>
+                <button onClick={handleLogout} className="flex items-center gap-2 text-sm text-gray-400 hover:text-white px-3 py-2.5 rounded-xl hover:bg-gray-800 w-full transition">
+                  <LogOut size={14} /> Sign out
                 </button>
               </div>
             ) : (
               <div className="flex gap-2">
-                <Link to="/login" onClick={() => setMenuOpen(false)} className="flex-1 text-center text-sm py-2 rounded-lg border border-gray-700 text-gray-300 hover:bg-gray-800 transition">Login</Link>
-                <Link to="/register" onClick={() => setMenuOpen(false)} className="flex-1 text-center text-sm py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white transition">Sign Up</Link>
+                <Link to="/login" onClick={() => setMenuOpen(false)} className="flex-1 text-center text-sm py-2.5 rounded-xl border border-gray-700 text-gray-300 hover:bg-gray-800 transition">Login</Link>
+                <Link to="/register" onClick={() => setMenuOpen(false)} className="flex-1 text-center text-sm py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white transition font-medium">Sign Up</Link>
               </div>
             )}
           </div>
