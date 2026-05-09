@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, MapPin, Play, ShieldAlert, ChevronRight } from 'lucide-react';
 
-const STORAGE_KEY = 'evacu3d_help_seen';
+export const EVACU3D_HELP_SEEN_KEY = 'evacu3d_help_seen';
 
 const steps = [
   {
@@ -21,19 +21,25 @@ const steps = [
   },
 ];
 
-const SimulatorHelpTip: React.FC = () => {
+interface SimulatorHelpTipProps {
+  /** Called when the panel is dismissed (so parent can reposition sibling UI) */
+  onDismiss?: () => void;
+}
+
+const SimulatorHelpTip: React.FC<SimulatorHelpTipProps> = ({ onDismiss }) => {
   const [visible, setVisible] = useState(false);
   const [step, setStep] = useState(0);
 
   useEffect(() => {
     // Only show if user hasn't seen it before
-    const seen = localStorage.getItem(STORAGE_KEY);
+    const seen = localStorage.getItem(EVACU3D_HELP_SEEN_KEY);
     if (!seen) setVisible(true);
   }, []);
 
   const dismiss = () => {
-    localStorage.setItem(STORAGE_KEY, '1');
+    localStorage.setItem(EVACU3D_HELP_SEEN_KEY, '1');
     setVisible(false);
+    onDismiss?.();
   };
 
   if (!visible) return null;

@@ -45,14 +45,37 @@ const FloorLabel: React.FC<{
   });
 
   // ── Mobile label priority rules ───────────────────────────────────────────
-  // Rule 1: Never show ANY Html label when the mobile drawer is open.
-  //         The drawer covers the scene; labels would bleed through.
-  // Rule 2: When the drawer is closed on mobile, show ONLY priority labels:
-  //         exits, refuges, and the currently selected node.
-  //         Regular room labels are hidden to reduce clutter on small screens.
+  // Never show ANY Html label when mobile drawer is open (drawer covers scene).
+  // When drawer is closed, apply a 3-tier priority system:
+  //   Tier 1 — Always visible: exits, refuges, currently selected node.
+  //   Tier 2 — Visible on screens >= 375 px: primary rooms (Lobby, Stairwell,
+  //            Boardroom, Corridor, Office). These are the named rooms users
+  //            must navigate and are shown as long as space permits.
+  //   Tier 3 — Hidden on mobile: remaining secondary/utility labels.
+  // Desktop: all labels always visible.
+  const isTier1 = isExit || isRefuge || isSelected;
+  const isTier2 = !isTier1 && (() => {
+    const name = label.toLowerCase();
+    return (
+      name.includes('lobby') ||
+      name.includes('stairwell') ||
+      name.includes('stair') ||
+      name.includes('boardroom') ||
+      name.includes('corridor') ||
+      name.includes('office') ||
+      name.includes('hall') ||
+      name.includes('reception') ||
+      name.includes('meeting') ||
+      name.includes('server') ||
+      name.includes('fire') ||
+      name.includes('emergency')
+    );
+  })();
+
+  const screenWidth = typeof window !== 'undefined' ? window.innerWidth : 768;
   const showHtmlLabel = isMobileViewport
-    ? !drawerOpen && (isExit || isRefuge || isSelected)
-    : true; // always show all labels on desktop
+    ? !drawerOpen && (isTier1 || (isTier2 && screenWidth >= 375))
+    : true;
 
 
   return (
@@ -118,7 +141,7 @@ const FloorLabel: React.FC<{
           <Html
             position={[0, 1.8, 0]}
             center
-            distanceFactor={15}
+            distanceFactor={isMobileViewport ? 18 : 15}
             zIndexRange={[45, 0]}
             occlude
             className="pointer-events-none select-none transition-opacity duration-300 ease-in-out block sim-label"
@@ -135,10 +158,11 @@ const FloorLabel: React.FC<{
               {label}
             </div>
 
-            {/* Capacity Badge — hidden on mobile to reduce clutter */}
+            {/* Capacity Badge — show on mobile for refuges (critical safety info),
+                hidden for non-refuge nodes on mobile to reduce clutter */}
             {isRefuge && (
               <div className={
-                `hidden sm:block mt-1.5 px-2.5 py-0.5 rounded-md backdrop-blur text-xs font-bold shadow-[0_0_10px_rgba(0,0,0,0.5)] whitespace-nowrap border ` +
+                `mt-1.5 px-2.5 py-0.5 rounded-md backdrop-blur text-xs font-bold shadow-[0_0_10px_rgba(0,0,0,0.5)] whitespace-nowrap border ` +
                 (occupancy >= capacity
                   ? 'bg-red-950/95 border-red-500/80 text-red-100 shadow-[0_0_15px_rgba(239,68,68,0.6)] animate-pulse'
                   : occupancy >= capacity * 0.7

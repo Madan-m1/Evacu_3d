@@ -5,7 +5,7 @@ import { ErrorBoundary } from '../components/ErrorBoundary';
 import { useSimulationStore } from '../store/simulationStore';
 import { Building2, ChevronRight, Plus, ShieldAlert, Home, SlidersHorizontal, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import SimulatorHelpTip from '../components/SimulatorHelpTip';
+import SimulatorHelpTip, { EVACU3D_HELP_SEEN_KEY } from '../components/SimulatorHelpTip';
 
 const Simulator = () => {
   // ── Store — single source of truth ────────────────────────────────────────
@@ -21,6 +21,11 @@ const Simulator = () => {
 
   const [status, setStatus] = useState<'picking' | 'loading' | 'ready' | 'error'>('picking');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  // Track Quick Start visibility so Controls button can avoid overlapping it
+  const [helpTipVisible, setHelpTipVisible] = useState(
+    () => typeof window !== 'undefined' ? !localStorage.getItem(EVACU3D_HELP_SEEN_KEY) : false
+  );
 
   // ── Reliable mobile detection via matchMedia ──────────────────────────────
   const [isMobile, setIsMobile] = useState(
@@ -216,13 +221,17 @@ const Simulator = () => {
         </div>
 
         {/* Onboarding help tip */}
-        <SimulatorHelpTip />
+        <SimulatorHelpTip onDismiss={() => setHelpTipVisible(false)} />
 
-        {/* Mobile: floating Controls button — only when drawer is closed */}
+        {/* Mobile: floating Controls button — only when drawer is closed.
+             When Quick Start panel is visible (bottom-right), pin button to bottom-left
+             so they never overlap. Once help is dismissed it returns to bottom-right. */}
         {isMobile && !drawerOpen && (
           <button
             onClick={() => setDrawerOpen(true)}
-            className="absolute bottom-5 right-4 z-20 flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-4 py-2.5 rounded-xl shadow-lg font-semibold text-sm transition"
+            className={`absolute bottom-5 z-[19] flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-4 py-2.5 rounded-xl shadow-lg font-semibold text-sm transition ${
+              helpTipVisible ? 'left-4' : 'right-4'
+            }`}
             aria-label="Open simulation controls"
             aria-expanded={false}
             aria-controls="sim-control-drawer"
