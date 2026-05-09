@@ -5,20 +5,24 @@ import * as THREE from 'three';
 import { useSimulationStore, type NodeData } from '../../store/simulationStore';
 
 const FloorLabel: React.FC<{
+  nodeId: string;
   position: [number, number, number];
   label: string;
   isExit: boolean;
   isRefuge: boolean;
   isSelected: boolean;
+  isOnPath: boolean;
   occupancy?: number;
   capacity?: number;
   participantCount?: number;
 }> = ({
+  nodeId,
   position,
   label,
   isExit,
   isRefuge,
   isSelected,
+  isOnPath,
   occupancy = 0,
   capacity = 10,
   participantCount = 0,
@@ -45,38 +49,53 @@ const FloorLabel: React.FC<{
   });
 
   // ── Mobile label priority rules ───────────────────────────────────────────
-  // Never show ANY Html label when mobile drawer is open (drawer covers scene).
-  // When drawer is closed, apply a 3-tier priority system:
-  //   Tier 1 — Always visible: exits, refuges, currently selected node.
-  //   Tier 2 — Visible on screens >= 375 px: primary rooms (Lobby, Stairwell,
-  //            Boardroom, Corridor, Office). These are the named rooms users
-  //            must navigate and are shown as long as space permits.
-  //   Tier 3 — Hidden on mobile: remaining secondary/utility labels.
-  // Desktop: all labels always visible.
-  const isTier1 = isExit || isRefuge || isSelected;
-  const isTier2 = !isTier1 && (() => {
-    const name = label.toLowerCase();
-    return (
-      name.includes('lobby') ||
-      name.includes('stairwell') ||
-      name.includes('stair') ||
-      name.includes('boardroom') ||
-      name.includes('corridor') ||
-      name.includes('office') ||
-      name.includes('hall') ||
-      name.includes('reception') ||
-      name.includes('meeting') ||
-      name.includes('server') ||
-      name.includes('fire') ||
-      name.includes('emergency')
-    );
-  })();
+  // 1. Refuge Areas
+  // 2. Fire Exits
+  // 3. Current User
+  // 4. Upper floor rooms (y > 1)
+  // 5. Active path rooms
+  // 6. Secondary rooms
+
+  const isUpperFloor = position[1] > 1; // Floor height is ~4.0
+  
+  const priority = 
+    isRefuge ? 1 :
+    isExit ? 2 :
+    isSelected ? 3 :
+    isUpperFloor ? 4 :
+    isOnPath ? 5 : 6;
 
   const screenWidth = typeof window !== 'undefined' ? window.innerWidth : 768;
-  const showHtmlLabel = isMobileViewport
-    ? !drawerOpen && (isTier1 || (isTier2 && screenWidth >= 375))
-    : true;
 
+  // Drawer open = 0 opacity, prevents overlaps with UI panels
+  // We NEVER hide labels completely due to priority anymore, only when drawer is open
+  const showHtmlLabel = !(isMobileViewport && drawerOpen);
+
+  // Graceful degradation for mobile
+  // Dynamic scaling based on priority - higher distanceFactor = smaller label
+  let mobileDistanceFactor = 15;
+  let labelYOffset = 1.8;
+  let opacityClass = 'opacity-100';
+
+  if (isMobileViewport) {
+    if (priority === 1 || priority === 2) {
+      mobileDistanceFactor = 15; // Largest, most important
+      labelYOffset = 2.0;
+    } else if (priority === 3) {
+      mobileDistanceFactor = 16;
+      labelYOffset = 1.8;
+    } else if (priority === 4) { // Upper floors
+      mobileDistanceFactor = 20; 
+      labelYOffset = 3.0; // Elevate high to prevent clipping
+    } else if (priority === 5) { // Active path
+      mobileDistanceFactor = 18;
+      labelYOffset = 1.6;
+    } else { // Secondary ground floor rooms
+      mobileDistanceFactor = 26; // Scale down gracefully instead of hiding
+      labelYOffset = 1.2; // Push down slightly to prevent overlapping with important labels
+      opacityClass = 'opacity-75 hover:opacity-100'; // Dim slightly to reduce clutter
+    }
+  }
 
   return (
     <group position={position}>
@@ -134,18 +153,16 @@ const FloorLabel: React.FC<{
         <pointLight color={isExit ? "#10b981" : "#8b5cf6"} intensity={2} distance={4} position={[0, 1, 0]} />
       )}
 
-      {/* Html label — conditionally rendered based on mobile priority rules */}
-      {showHtmlLabel && (
-        <>
-          {/* capped below z-50 drawer — can never win stacking war */}
-          <Html
-            position={[0, 1.8, 0]}
-            center
-            distanceFactor={isMobileViewport ? 18 : 15}
-            zIndexRange={[45, 0]}
-            occlude
-            className="pointer-events-none select-none transition-opacity duration-300 ease-in-out block sim-label"
-          >
+      {/* Html label — conditional styling instead of unmounting to ensure stable lifecycle */}
+      <Html
+        position={[0, labelYOffset, 0]}
+        center
+        distanceFactor={isMobileViewport ? mobileDistanceFactor : 15}
+        zIndexRange={showHtmlLabel ? [45, 0] : [-10, -10]}
+        // occlude removed to prevent aggressive culling of upper floors
+        className={`pointer-events-none select-none transition-all duration-300 ease-in-out block sim-label ${showHtmlLabel ? `${opacityClass} scale-100` : 'opacity-0 scale-95'}`}
+        style={{ visibility: showHtmlLabel ? 'visible' : 'hidden' }}
+      >
           <div className="flex flex-col items-center animate-fade-in-up">
             {/* Main Label — compact on mobile */}
             <div className={
@@ -174,8 +191,6 @@ const FloorLabel: React.FC<{
             )}
           </div>
         </Html>
-        </>
-      )}
     </group>
   );
 };
@@ -206,7 +221,7 @@ const CorridorEdge: React.FC<{ nodeA: NodeData; nodeB: NodeData }> = ({ nodeA, n
 };
 
 export const LevelMap: React.FC = () => {
-  const { nodes, edges, startNode, participants, refugeOccupancy } = useSimulationStore();
+  const { nodes, edges, startNode, participants, refugeOccupancy, path } = useSimulationStore();
 
   // Build a map for quick lookups
   const nodeMap = React.useMemo(() => {
@@ -248,14 +263,17 @@ export const LevelMap: React.FC = () => {
       
       {nodes.map(node => {
         const absoluteOccupancy = refugeOccupancy[node.id] ?? participantCounts[node.id] ?? 0;
+        const isOnPath = path.includes(node.id);
         return (
           <FloorLabel
             key={node.id}
+            nodeId={node.id}
             position={[node.x, node.y, node.z]}
             label={node.roomName || node.id}
             isExit={!!node.isExit}
             isRefuge={!!node.isRefuge}
             isSelected={startNode === node.id}
+            isOnPath={isOnPath}
             capacity={node.capacity}
             occupancy={absoluteOccupancy}
             participantCount={absoluteOccupancy}

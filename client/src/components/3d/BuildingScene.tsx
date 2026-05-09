@@ -10,9 +10,18 @@ import { useSimulationStore } from '../../store/simulationStore';
 export const BuildingScene: React.FC = () => {
   const { nodes, participants, localParticipantId } = useSimulationStore();
   
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+  
   return (
     <div style={{ width: '100%', height: '100%', position: 'absolute', inset: 0 }}>
-      <Canvas camera={{ position: [0, 15, 20], fov: 45 }} shadows style={{ width: '100%', height: '100%' }}>
+      <Canvas 
+        camera={{ 
+          position: isMobile ? [0, 22, 28] : [0, 15, 20], 
+          fov: isMobile ? 55 : 45 
+        }} 
+        shadows 
+        style={{ width: '100%', height: '100%' }}
+      >
         <color attach="background" args={['#0f172a']} />
         
         <ambientLight intensity={0.4} />
