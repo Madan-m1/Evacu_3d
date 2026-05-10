@@ -2,7 +2,7 @@ import React, { useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Html } from '@react-three/drei';
 import * as THREE from 'three';
-import type { ParticipantData, NodeData } from '../../store/simulationStore';
+import { useSimulationStore, type ParticipantData, type NodeData } from '../../store/simulationStore';
 
 const ParticipantMarker: React.FC<{ participant: ParticipantData; node: NodeData }> = ({ participant, node }) => {
   const meshRef = useRef<THREE.Mesh>(null);

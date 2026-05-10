@@ -16,7 +16,6 @@ const FloorLabel: React.FC<{
   capacity?: number;
   participantCount?: number;
 }> = ({
-  nodeId,
   position,
   label,
   isExit,
@@ -64,8 +63,6 @@ const FloorLabel: React.FC<{
     isSelected ? 3 :
     isUpperFloor ? 4 :
     isOnPath ? 5 : 6;
-
-  const screenWidth = typeof window !== 'undefined' ? window.innerWidth : 768;
 
   // Drawer open = 0 opacity, prevents overlaps with UI panels
   // We NEVER hide labels completely due to priority anymore, only when drawer is open
