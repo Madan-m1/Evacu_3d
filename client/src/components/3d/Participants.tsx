@@ -7,6 +7,10 @@ import type { ParticipantData, NodeData } from '../../store/simulationStore';
 const ParticipantMarker: React.FC<{ participant: ParticipantData; node: NodeData }> = ({ participant, node }) => {
   const meshRef = useRef<THREE.Mesh>(null);
   
+  // Read drawer state for mobile safe-zone
+  const drawerOpen = useSimulationStore(s => s.drawerOpen);
+  const isMobileViewport = typeof window !== 'undefined' && window.innerWidth < 768;
+  
   // Color based on status
   const color = participant.status === 'evacuating' ? '#3b82f6' : 
                 participant.status === 'refuge_mode' ? '#a855f7' : 
@@ -20,6 +24,13 @@ const ParticipantMarker: React.FC<{ participant: ParticipantData; node: NodeData
     }
   });
 
+  // Logical visibility (should this label ever be shown?)
+  const isValidContext = participant.status !== 'safe_in_refuge' && !node.isRefuge;
+  // UI Safe-zone visibility (is the mobile drawer covering the scene?)
+  const isSafeZoneVisible = !(isMobileViewport && drawerOpen);
+  
+  const showHtmlLabel = isValidContext && isSafeZoneVisible;
+
   return (
     <group position={[node.x, 0, node.z]}>
       {/* Participant Sphere */}
@@ -28,9 +39,15 @@ const ParticipantMarker: React.FC<{ participant: ParticipantData; node: NodeData
         <meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.5} />
       </mesh>
       
-      {/* Label - Only show if user is NOT in a refuge to avoid overlap with refuge status labels */}
-      {participant.status !== 'safe_in_refuge' && !node.isRefuge && (
-        <Html position={[0, 1.5, 0]} center distanceFactor={10}>
+      {/* Label - Always mounted if logically valid, styled based on safe-zone to avoid drawer overlap */}
+      {isValidContext && (
+        <Html 
+          position={[0, 1.5, 0]} 
+          center 
+          distanceFactor={10}
+          className={`pointer-events-none select-none transition-all duration-300 ease-in-out ${showHtmlLabel ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}
+          style={{ visibility: showHtmlLabel ? 'visible' : 'hidden' }}
+        >
           <div className="flex flex-col items-center">
             <div className="bg-gray-900/80 backdrop-blur-sm border border-gray-700 px-2 py-0.5 rounded shadow-lg">
               <span className="text-[10px] font-bold text-white whitespace-nowrap">{participant.name}</span>

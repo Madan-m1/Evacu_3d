@@ -229,14 +229,15 @@ const Simulator = () => {
         {isMobile && !drawerOpen && (
           <button
             onClick={() => setDrawerOpen(true)}
-            className={`absolute bottom-5 z-[19] flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-4 py-2.5 rounded-xl shadow-lg font-semibold text-sm transition ${
+            className={`absolute z-[19] flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-5 py-3 rounded-xl shadow-lg font-bold text-sm transition-all active:scale-95 ${
               helpTipVisible ? 'left-4' : 'right-4'
             }`}
+            style={{ bottom: 'max(1.5rem, calc(env(safe-area-inset-bottom) + 1.5rem))' }}
             aria-label="Open simulation controls"
             aria-expanded={false}
             aria-controls="sim-control-drawer"
           >
-            <SlidersHorizontal size={16} />
+            <SlidersHorizontal size={18} />
             Controls
           </button>
         )}

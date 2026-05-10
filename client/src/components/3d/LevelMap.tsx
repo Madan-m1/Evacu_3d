@@ -74,28 +74,34 @@ const FloorLabel: React.FC<{
   // Graceful degradation for mobile
   // Dynamic scaling based on priority - higher distanceFactor = smaller label
   let mobileDistanceFactor = 15;
-  let labelYOffset = 1.8;
+  
+  // Use CSS transforms for vertical offsetting instead of changing the 3D position!
+  // Changing 3D position causes random disappearing due to frustum culling when the anchor leaves the screen.
+  let cssTranslateY = '0px';
   let opacityClass = 'opacity-100';
 
   if (isMobileViewport) {
     if (priority === 1 || priority === 2) {
       mobileDistanceFactor = 15; // Largest, most important
-      labelYOffset = 2.0;
+      cssTranslateY = '-16px';
     } else if (priority === 3) {
       mobileDistanceFactor = 16;
-      labelYOffset = 1.8;
+      cssTranslateY = '-10px';
     } else if (priority === 4) { // Upper floors
       mobileDistanceFactor = 20; 
-      labelYOffset = 3.0; // Elevate high to prevent clipping
+      cssTranslateY = '-28px'; // Elevate high visually to prevent clipping
     } else if (priority === 5) { // Active path
       mobileDistanceFactor = 18;
-      labelYOffset = 1.6;
+      cssTranslateY = '0px';
     } else { // Secondary ground floor rooms
       mobileDistanceFactor = 26; // Scale down gracefully instead of hiding
-      labelYOffset = 1.2; // Push down slightly to prevent overlapping with important labels
-      opacityClass = 'opacity-75 hover:opacity-100'; // Dim slightly to reduce clutter
+      cssTranslateY = '12px'; // Push down slightly visually
+      opacityClass = 'opacity-80 hover:opacity-100'; // Dim slightly to reduce clutter
     }
   }
+
+  // Stable 3D anchor - prevents random frustum culling
+  const stableAnchorY = isUpperFloor ? 1.5 : 1.2;
 
   return (
     <group position={position}>
@@ -154,14 +160,22 @@ const FloorLabel: React.FC<{
       )}
 
       {/* Html label — conditional styling instead of unmounting to ensure stable lifecycle */}
+      {/* 
+        Fixes:
+        1. position is a stable anchor to prevent frustum culling bugs.
+        2. style.transform is used for visual vertical stacking.
+        3. Removed zIndexRange entirely to fix the "Stairwell A" delayed rendering bug on first load. 
+           (Drei Html delays initial render if zIndexRange is provided without camera movement).
+      */}
       <Html
-        position={[0, labelYOffset, 0]}
+        position={[0, stableAnchorY, 0]}
         center
         distanceFactor={isMobileViewport ? mobileDistanceFactor : 15}
-        zIndexRange={showHtmlLabel ? [45, 0] : [-10, -10]}
-        // occlude removed to prevent aggressive culling of upper floors
         className={`pointer-events-none select-none transition-all duration-300 ease-in-out block sim-label ${showHtmlLabel ? `${opacityClass} scale-100` : 'opacity-0 scale-95'}`}
-        style={{ visibility: showHtmlLabel ? 'visible' : 'hidden' }}
+        style={{ 
+          visibility: showHtmlLabel ? 'visible' : 'hidden',
+          transform: `translate3d(-50%, calc(-50% + ${cssTranslateY}), 0)`
+        }}
       >
           <div className="flex flex-col items-center animate-fade-in-up">
             {/* Main Label — compact on mobile */}
