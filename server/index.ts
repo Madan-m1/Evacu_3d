@@ -330,18 +330,41 @@ app.post('/api/buildings/:id/simulate', async (req: Request, res: Response) => {
     const hazardsSet = new Set<string>([...serverHazardIds, ...clientHazards]);
 
     const exitNodes = nodesData.filter((n: any) => n.isExit).map((n: any) => n.id);
-    const refugeNodes = nodesData.filter((n: any) => n.isRefuge).map((n: any) => ({
-      id: n.id, isExit: n.isExit, isRefuge: n.isRefuge,
-      capacity: n.capacity || 10, occupancy: n.occupancy || 0,
+    const refugeNodes = await Promise.all(nodesData.filter((n: any) => n.isRefuge).map(async (n: any) => {
+      const actualOccupancy = await ParticipantModel.countDocuments({
+        buildingId: req.params.id,
+        nodeId: n.id,
+        status: 'safe_in_refuge'
+      });
+      return {
+        id: n.id, isExit: n.isExit, isRefuge: n.isRefuge,
+        capacity: n.capacity || 10, occupancy: actualOccupancy,
+      };
     }));
 
     const graph: Record<string, { target: string; distance: number }[]> = {};
     for (const node of nodesData) graph[node.id] = [];
+    
+    // Fallback: Calculate 3D Euclidean distance if edge.distance is missing from DB
+    const getDist = (sourceId: string, targetId: string, providedDist?: number) => {
+      if (providedDist !== undefined && providedDist > 0) return providedDist;
+      const n1 = nodesData.find((n: any) => n.id === sourceId);
+      const n2 = nodesData.find((n: any) => n.id === targetId);
+      if (n1 && n2) {
+        const dx = n1.x - n2.x;
+        const dy = n1.y - n2.y;
+        const dz = n1.z - n2.z;
+        return Math.sqrt(dx*dx + dy*dy + dz*dz) || 1;
+      }
+      return 1;
+    };
+
     for (const edge of edgesData) {
+      const dist = getDist(edge.source, edge.target, edge.distance);
       if (!graph[edge.source]) graph[edge.source] = [];
-      graph[edge.source].push({ target: edge.target, distance: edge.distance });
+      graph[edge.source].push({ target: edge.target, distance: dist });
       if (!graph[edge.target]) graph[edge.target] = [];
-      graph[edge.target].push({ target: edge.source, distance: edge.distance });
+      graph[edge.target].push({ target: edge.source, distance: dist });
     }
 
     const result = findEvacuationPath(graph, startNode, exitNodes, refugeNodes, hazardsSet);

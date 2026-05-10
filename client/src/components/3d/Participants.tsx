@@ -32,7 +32,7 @@ const ParticipantMarker: React.FC<{ participant: ParticipantData; node: NodeData
   const showHtmlLabel = isValidContext && isSafeZoneVisible;
 
   return (
-    <group position={[node.x, 0, node.z]}>
+    <group position={[node.x, node.y, node.z]}>
       {/* Participant Sphere */}
       <mesh ref={meshRef}>
         <sphereGeometry args={[0.3, 16, 16]} />

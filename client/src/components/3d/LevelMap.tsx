@@ -170,11 +170,13 @@ const FloorLabel: React.FC<{
         distanceFactor={isMobileViewport ? mobileDistanceFactor : 15}
         className={`pointer-events-none select-none transition-all duration-300 ease-in-out block sim-label ${showHtmlLabel ? `${opacityClass} scale-100` : 'opacity-0 scale-95'}`}
         style={{ 
-          visibility: showHtmlLabel ? 'visible' : 'hidden',
-          transform: `translate3d(-50%, calc(-50% + ${cssTranslateY}), 0)`
+          visibility: showHtmlLabel ? 'visible' : 'hidden'
         }}
       >
-          <div className="flex flex-col items-center animate-fade-in-up">
+          <div 
+            className="flex flex-col items-center animate-fade-in-up"
+            style={{ transform: `translate3d(0, ${cssTranslateY}, 0)` }}
+          >
             {/* Main Label — compact on mobile */}
             <div className={
               `px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg backdrop-blur-md border shadow-[0_0_15px_rgba(0,0,0,0.5)] whitespace-nowrap flex items-center justify-center font-bold tracking-wide text-[10px] sm:text-xs ` +
