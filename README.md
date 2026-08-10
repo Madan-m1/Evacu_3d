@@ -49,7 +49,7 @@ npm start
 ## 📞 Contact
 👤 Developer: Madan Kumar  
 📧 Email: madankumarm1111@gmail.com  
-🔗 GitHub: https://github.com/Madan-m1/Virtual-Therapy  
+🔗 GitHub: [https://github.com/Madan-m1/Evacu_3d](https://github.com/Madan-m1/Evacu_3d) 
 
 ---
 
