@@ -40,7 +40,7 @@ User → Authentication → Dashboard → Real-Time Sync → Evacuation Updates
 ## ⚙️ Setup
 
 ```bash
-git clone (https://github.com/Madan-m1/Evacu_3d.git)
+git clone https://github.com/Madan-m1/Evacu_3d.git
 npm install
 npm start
 ```
